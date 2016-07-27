@@ -6,23 +6,34 @@ from tkinter import filedialog
 from utils import *
 
 def analyze(*args):
-    #get 3 files and send to utils function
-    return
+    if not verify_paths(admit_entry.get(), line_entry.get(), event_entry.get()):
+        #Alert window to catch non Excel files
+        alert = Toplevel()
+        alert.title("Invalid Data Supplied")
+        return
+    if output_entry.get() == '':
+        #validate output destination is supplied
+        alert = Toplevel()
+        alert.title("Invalid Output Destination")
+        return
+    verify_admit_data(admit_entry.get())
+    process_data(admit_entry.get(), line_entry.get(), event_entry.get(), output_entry.get())
+    print("made it")
 
 def admit_path(*args):
-    admit_data_loc = get_file_path()
+    admit_data_loc = get_file_path("Patient Admission Data")
     admit_entry.insert(0, admit_data_loc)
 
 def line_path(*args):
-    line_data_loc = get_file_path()
+    line_data_loc = get_file_path("Line Data")
     line_entry.insert(0, line_data_loc)
 
 def event_path(*args):
-    event_data_loc = get_file_path()
+    event_data_loc = get_file_path("Event Data")
     event_entry.insert(0, event_data_loc)
 
 def output_path(*args):
-    output_loc = get_file_directory()
+    output_loc = get_file_directory("Output Directory")
     output_entry.insert(0, output_loc)
 
 root = Tk()
@@ -60,6 +71,14 @@ output_entry.grid(column=2, row=5, sticky=(W, E))
 output_browse_button = Button(mainframe, text='Browse', command=output_path)
 output_browse_button.grid(column=3, row=5, sticky=(W, E))
 
+
+#TODO: Remove default paths.
+admit_entry.insert(0, "D:/projects/med/sampledata/in/Admit and Discharge Input Data.xlsx")
+line_entry.insert(0, "D:/projects/med/sampledata/in/Sample Input Line Data.xlsx")
+event_entry.insert(0, "D:/projects/med/sampledata/in/combineddata.xlsx")
+output_entry.insert(0, "D:/projects/med/sampledata/out")
+
+
 ttk.Label(mainframe, text="Patient Admission Data").grid(column=1, row=2, sticky=W)
 ttk.Label(mainframe, text="Line Data").grid(column=1, row=3, sticky=W)
 ttk.Label(mainframe, text="Event Data").grid(column=1, row=4, sticky=W)
@@ -67,6 +86,7 @@ ttk.Label(mainframe, text="Event Data").grid(column=1, row=4, sticky=W)
 ttk.Label(mainframe, text="Output Destination").grid(column=1, row=5, sticky=W)
 
 ttk.Button(mainframe, text="Continue", command=analyze).grid(column=3, row=6, sticky=E)
+root.bind('<Return>', analyze)
 
 for child in mainframe.winfo_children():
     child.grid_configure(padx=5, pady=5)
