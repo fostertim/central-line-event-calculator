@@ -3,6 +3,7 @@ from tkinter import ttk
 from tkinter import filedialog
 
 from utils import *
+import os
 
 def analyze(*args):
     if not verify_paths(admit_entry.get(), line_entry.get(), event_entry.get()):
@@ -17,7 +18,7 @@ def analyze(*args):
         return
     verify_admit_data(admit_entry.get())
     process_data(admit_entry.get(), line_entry.get(), event_entry.get(), output_entry.get())
-    print("made it")
+    os.startfile(output_entry.get())
 
 def admit_path(*args):
     admit_data_loc = get_file_path("Patient Admission Data")
