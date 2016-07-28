@@ -73,10 +73,10 @@ output_browse_button.grid(column=3, row=5, sticky=(W, E))
 
 
 #TODO: Remove default paths.
-admit_entry.insert(0, "D:/projects/med/sampledata/in/Admit and Discharge Input Data.xlsx")
-line_entry.insert(0, "D:/projects/med/sampledata/in/Sample Input Line Data.xlsx")
-event_entry.insert(0, "D:/projects/med/sampledata/in/combineddata.xlsx")
-output_entry.insert(0, "D:/projects/med/sampledata/out")
+# admit_entry.insert(0, "D:/projects/med/sampledata/in/Admit and Discharge Input Data.xlsx")
+# line_entry.insert(0, "D:/projects/med/sampledata/in/Sample Input Line Data.xlsx")
+# event_entry.insert(0, "D:/projects/med/sampledata/in/combineddata.xlsx")
+# output_entry.insert(0, "D:/projects/med/sampledata/out")
 
 
 ttk.Label(mainframe, text="Patient Admission Data").grid(column=1, row=2, sticky=W)
