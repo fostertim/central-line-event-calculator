@@ -72,7 +72,7 @@ output_browse_button = Button(mainframe, text='Browse', command=output_path)
 output_browse_button.grid(column=3, row=5, sticky=(W, E))
 
 
-#TODO: Remove default paths.
+# TODO: Remove default paths.
 # admit_entry.insert(0, "D:/projects/med/sampledata/in/Admit and Discharge Input Data.xlsx")
 # line_entry.insert(0, "D:/projects/med/sampledata/in/Sample Input Line Data.xlsx")
 # event_entry.insert(0, "D:/projects/med/sampledata/in/combineddata.xlsx")

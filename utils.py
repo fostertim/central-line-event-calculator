@@ -194,7 +194,7 @@ def generate_patient_output(path, patients, events):
     w_sheet['A' + max_index] = 'Population Total'
     w_sheet['B' + max_index] = '=SUM(B2:B' + str(bottom) + ')'
     w_sheet['C' + max_index] = '=SUM(C2:C' + str(bottom) + ')'
-    w_sheet['D' + max_index] = '=C' + str(bottom) + '/B' + str(bottom)
+    w_sheet['D' + max_index] = '=C' + str(max_index) + '/B' + str(max_index)
     w_sheet['E' + max_index] = '=SUM(E2:E' + str(bottom) + ')'
     w_sheet['F' + max_index] = '=C'+ str(max_index) + '/E' + str(max_index)
     w_sheet['G' + max_index] = '=SUM(G2:G' +  str(bottom) + ')'
