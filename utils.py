@@ -1,17 +1,20 @@
 """Classes and methods for Central Line Event Calculator analysis"""
 
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 from openpyxl import Workbook, load_workbook, cell
 from datetime import datetime
 
 import functools
 import string
+import os
 
 # define options for opening or saving a file
 OPTIONS = {}
 OPTIONS['defaultextension'] = '.xlsx'
 OPTIONS['filetypes'] = [('Excel files', '.xlsx .xls'), ('all files', '.*')]
 
+def error_message(title, message):
+    messagebox.showwarning(title, message)
 
 def get_file_path(title):
     """Opens TkInter dialogue window and returns user specefied file path."""
@@ -25,43 +28,48 @@ def get_file_directory(title):
     directory = filedialog.askdirectory()
     return directory
 
-def verify_paths(path1, path2, path3):
+def verify_paths(path1, path2, path3, path4, output):
     """Verifies all file paths are Excel files with the correct data formats."""
     first_valid = verify_excel_file(path1)
     second_valid = verify_excel_file(path2)
     third_valid = verify_excel_file(path3)
-    return first_valid and second_valid and third_valid
+    fourth_valid = verify_excel_file(path4)
+    if not first_valid or not second_valid or not third_valid or not fourth_valid:
+        error_message("Invalid Data Supplied", "All input data must be Excel files.")
+        return False
+    if not file_exits(path1) or not file_exits(path2) or not file_exits(path3) \
+    or not file_exits(path4):
+        error_message(
+            "Invalid Data Supplied",
+            "One or more of the specified input files does not exist.\n" + \
+            "Check the file locations and names and try again.")
+        return False
+    return True
+        
+def file_exits(path):
+    return os.path.isfile(path)
 
 def verify_excel_file(path):
     """Ensures that a path is an Excel file."""
     if path == '':
         return False
-    file_ending = path.split('.')[1]
+    try:
+        file_ending = path.split('.')[1]
+    except IndexError:
+        return False
     if file_ending == 'xlsx' or file_ending == 'xls':
         return True
     return False
 
-def verify_admit_data(path):
-    """Verfifies patient admission data is of the correct form."""
-    try:
-        work_book = load_workbook(path, read_only=True)
-        w_sheet = work_book.active
-        print(isinstance(w_sheet['A2'].value, int))
-        print(isinstance(w_sheet['B2'].value, datetime))
-        print(isinstance(w_sheet['C2'].value, datetime))
-    except FileNotFoundError:
-        return False
-
-
-def process_data(admit_path, line_path, event_path, out_path):
+def process_data(title, admit_path, line_path, clabsi_path,  clanc_path, out_path):
     """Read in each file and writes results to the out_path."""
     events = {}
-
     patients = read_patient_data(admit_path)
     read_line_data(line_path, patients)
-    read_event_data(event_path, patients, events)
-    generate_patient_output(out_path, patients, events)
-    generate_line_output(out_path, patients, events)
+    read_clabsi_data(clabsi_path, patients)
+    read_clanc_data(clanc_path, patients)
+    generate_patient_output(title, out_path, patients, events)
+    generate_line_output(title, out_path, patients, events)
     return True
 
 def read_patient_data(path):
@@ -74,6 +82,15 @@ def read_patient_data(path):
         p_id = w_sheet['A' + str(index)].value
         in_date = w_sheet['B' + str(index)].value
         out_date = w_sheet['C' + str(index)].value
+
+        # Spreadsheet format check
+        if not isinstance(p_id, int):
+            raise BadFormatException("Patient ID Numbers in Column A of Patient Data must be numbers.")
+        if not isinstance(in_date, datetime):
+            raise BadFormatException("Patient Admission Dates in Column B of Patient Data must be dates.")
+        if not isinstance(in_date, datetime):
+            raise BadFormatException("Patient Disscharge Dates in Column C of Patient Data must be dates.")
+
         if not p_id in patients:
             p = Patient(p_id)
             patients[p_id] = p
@@ -87,7 +104,7 @@ def read_line_data(path, patients):
     work_book = load_workbook(path, read_only=True)
     w_sheet = work_book.active
     index = 2
-    while index <= w_sheet.max_row:
+    while index <= w_sheet.max_row and w_sheet['A' + str(index)].value is not None:
         p_id = w_sheet['A' + str(index)].value
         line_id = w_sheet['B' + str(index)].value
         line_type = w_sheet['C' + str(index)].value
@@ -96,37 +113,78 @@ def read_line_data(path, patients):
         out_date = w_sheet['F' + str(index)].value
         if out_date is None:
             out_date = w_sheet['G' + str(index)].value
-        l = Line(line_id, line_type, lumens, in_date, out_date)
+        removal_reason = w_sheet['H' + str(index)].value
+
+        # Spreadsheet format check
+        if not isinstance(p_id, int):
+            raise BadFormatException("Patient ID Numbers in Column A of Line Data must be numbers.")
+        if not isinstance(line_id, int):
+            raise BadFormatException("Line ID Numbers in Column B of Line Data must be numbers.")
+        if not isinstance(line_type, str):
+            raise BadFormatException("Line Types in Column C of Line Data must be text.")
+        if not isinstance(lumens, int):
+            raise BadFormatException("Lumen Count in Column D of Line Data must be numbers.")
+        if not isinstance(in_date, datetime):
+            raise BadFormatException("Patient Admission Dates in Column E of Patient Data must be dates.")
+        if not isinstance(in_date, datetime):
+            raise BadFormatException("Patient Disscharge Dates in Column F and G of Patient Data must be dates.")
+        if not isinstance(removal_reason, str) and removal_reason is not None:
+            raise BadFormatException("Reason For Removal in Column H of Line Data must be text.")
+       
+        l = Line(line_id, line_type, lumens, in_date, out_date, removal_reason)
         patients[p_id].add_line(l)
         index += 1
 
-def read_event_data(path, patients, events):
-    """Read in event data. Event objects are stored globally, by Patient, and by Line."""
+def read_clabsi_data(path, patients):
     work_book = load_workbook(path, read_only=True)
     w_sheet = work_book.active
     index = 2
     while index <= w_sheet.max_row:
         p_id = w_sheet['A' + str(index)].value
-        event_date = w_sheet['B' + str(index)].value
-        event_type = w_sheet['C' + str(index)].value
-        e = Event(p_id, event_date, event_type)
-        if event_type not in events:
-            events[event_type] = [e]
-        else:
-            events[event_type].append(e)
+        clabsi_date = w_sheet['B' + str(index)].value
 
-        if event_type not in patients[p_id].events:
-            patients[p_id].events[event_type] = [e]
-        else:
-            patients[p_id].events[event_type].append(e)
-        for l in patients[p_id].lines:
-            if event_date is not None and l.in_date <= event_date and l.out_date >= event_date:
-                if not event_type in l.events:
-                    l.events[event_type] = [e]
-                else:
-                    l.events[event_type].append(e)
+        if not isinstance(p_id, int):
+            raise BadFormatException("Patient ID Numbers in Column A of CLABSI Data must be numbers.")
+        if not isinstance(clabsi_date, datetime):
+            raise BadFormatException("CLABSI Date in Column B of CLABSI Data must be a date.")
+
+        p = patients[p_id]
+        lines = []
+
+        for l in p.lines:
+            if l.in_date <= clabsi_date and l.out_date >= clabsi_date:
+                lines.append(l)
+
+        event = CLABSI(p, lines, clabsi_date)
+
+        p.clabsis.append(event)
         index += 1
 
+
+def read_clanc_data(path, patients):
+    work_book = load_workbook(path, read_only=True)
+    w_sheet = work_book.active
+    index = 2
+    while index <= w_sheet.max_row:
+        p_id = w_sheet['A' + str(index)].value
+        line_id = w_sheet['B' + str(index)].value
+        clanc_date = w_sheet['C' + str(index)].value
+
+        if not isinstance(p_id, int):
+            raise BadFormatException("Patient ID Numbers in Column A of CLANC Data must be numbers.")
+        if not isinstance(line_id, int):
+            raise BadFormatException("Line ID Numbers in Column B of CLANC Data must be numbers.")
+        if not isinstance(clanc_date, datetime):
+            raise BadFormatException("CLABSI Date in Column C of CLANC Data must be a date.")
+        
+        p = patients[p_id]
+        line = [l for l in p.lines if line_id == l.line_id][0]
+
+        event = CLANC(p, line, clanc_date)
+
+        p.clancs.append(event)
+        line.clanc = event
+        index += 1
 
 def check_full_day_admit(in_time, out_time):
     """Returns True if Patient was admitted for at least 24 hours."""
@@ -135,7 +193,7 @@ def check_full_day_admit(in_time, out_time):
         return False
     return True
 
-def generate_patient_output(path, patients, events):
+def generate_patient_output(title, path, patients, events):
     """Writes patient-only analysis to new Excel file."""
     work_book = Workbook()
     w_sheet = work_book.active
@@ -150,22 +208,10 @@ def generate_patient_output(path, patients, events):
     w_sheet['F1'] = 'Catheter Density (Sum of all Line Days/Total Days with any catheter)'
     w_sheet['G1'] = 'Sum of all Lumen Days'
     w_sheet['H1'] = 'Lumen Density (Sum of all Lumen Days/Total Days with any cather)'
-
-    event_indecies = {}
-
-    for event_type in events:
-        bottom = len(patients) + 2
-        first_col = w_sheet.max_column + 1
-        second_col = w_sheet.max_column + 2
-        event_indecies[event_type] = first_col
-        w_sheet.cell(row=1, column=first_col).value = event_type + 's'
-        w_sheet.cell(row=1, column=second_col).value = event_type + ' Rate (x1000)'
-        total = len(events[event_type])
-
-        rate = string.ascii_uppercase[first_col - 1] + str(bottom) + "/E" + str(bottom)
-        rate_formula = '=(' + rate + ")*1000"
-        w_sheet.cell(row=bottom, column=first_col).value = total
-        w_sheet.cell(row=bottom, column=second_col).value = rate_formula
+    w_sheet['I1'] = 'CLABSIs'
+    w_sheet['J1'] = "CLABSI Rate (x1000)"
+    w_sheet['K1'] = 'CLANCs'
+    w_sheet['L1'] = "CLANC Rate (x1000)"
 
     row = 2
     for p_id in patients:
@@ -179,13 +225,11 @@ def generate_patient_output(path, patients, events):
         w_sheet['F' + str(row)] = w_sheet['C' + str(row)].value / w_sheet['E' + str(row)].value
         w_sheet['G' + str(row)] = p.total_lumen_time.days
         w_sheet['H' + str(row)] = w_sheet['G' + str(row)].value / w_sheet['E' + str(row)].value
-        for event_type in patients[p_id].events:
-            first_col = event_indecies[event_type]
-            second_col = event_indecies[event_type] + 1
-            rate = string.ascii_uppercase[first_col - 1] + str(row) + "/E" + str(row)
-            rate_formula = '=(' + rate + ")*1000"
-            w_sheet.cell(row=row, column=first_col).value = len(p.events[event_type])
-            w_sheet.cell(row=row, column=second_col).value = rate_formula
+        w_sheet['I' + str(row)] = len(p.clabsis)
+        w_sheet['J' + str(row)] = w_sheet['I' + str(row)].value / w_sheet['E' + str(row)].value
+        w_sheet['K' + str(row)] = len(p.clancs)
+        w_sheet['L' + str(row)] = w_sheet['K' + str(row)].value / w_sheet['E' + str(row)].value
+        
         row += 1
 
     #Summation Data
@@ -206,9 +250,9 @@ def generate_patient_output(path, patients, events):
         w_sheet.column_dimensions[cell.get_column_letter(index)].width = len(col[0].value)
         index += 1
 
-    work_book.save(path + "/Output Individual Patient.xlsx")
+    work_book.save(path + "/" + title + " - Output Individual Patient.xlsx")
 
-def generate_line_output(path, patients, events):
+def generate_line_output(title, path, patients, events):
     """Writes line-only analysis to new Excel file."""
     work_book = Workbook()
     w_sheet = work_book.active
@@ -223,17 +267,13 @@ def generate_line_output(path, patients, events):
     w_sheet['F1'] = 'Line Days (any catheter)'
     w_sheet['G1'] = 'Lumen Days (Line Days x Number of Lumens)'
 
-    event_indecies = {}
+    w_sheet['H1'] = "Number CLABSIs"
+    w_sheet['I1'] =  "Number of CLANCs"
+    w_sheet['J1'] =  "Time from CLANC to line removal"
+    w_sheet['K1'] =  "Reason For Line Removal"
 
-    for event_type in events:
-        first_col = w_sheet.max_column + 1
-        second_col = w_sheet.max_column + 2
-        event_indecies[event_type] = first_col
-        w_sheet.cell(row=1, column=first_col).value = \
-            event_type + ' (Between Date Inserted and Date Removed)'
-        w_sheet.cell(row=1, column=second_col).value = event_type + ' Rate (x1000)'
-    all_events_col = w_sheet.max_column
-    all_rates_col = w_sheet.max_column + 1
+    w_sheet['L1'] =  "ALL EVENTS"
+    w_sheet['M1'] =  "ALL EVENT RATE (x1000)"
 
     row = 2
     for p_id in patients:
@@ -247,30 +287,30 @@ def generate_line_output(path, patients, events):
             w_sheet['F' + str(row)] = l.total_time.days
             w_sheet['G' + str(row)] = l.lumen_days.days
 
+            num_events = 0
+            for e in p.clabsis:
+                if l in e.lines:
+                    num_events += 1/(len(e.lines))
+
+            w_sheet['H' + str(row)] = num_events
+
+            num_clancs = 0
+            if l.clanc is not None:
+                num_clancs = 1
+            w_sheet['I' + str(row)] = num_clancs
+            diff = l.out_date - l.clanc_date
+            w_sheet['J' + str(row)] = l.out_date - l.clanc.date
+            w_sheet['K' + str(row)] = l.removal_reason
+
+            total_events = num_clancs + num_events
+            w_sheet['L' + str(row)] = total_events
+            w_sheet['M' + str(row)] = (total_events / l.total_time.days) * 1000
+
             w_sheet['D' + str(row)].number_format = 'dd-mmm-yy'
             w_sheet['E' + str(row)].number_format = 'dd-mmm-yy'
-
-            total_events = 0
-            for event_type in  event_indecies:
-                first_col = event_indecies[event_type]
-                second_col = event_indecies[event_type] + 1
-                rate = string.ascii_uppercase[first_col - 1] + str(row) + "/F" + str(row)
-                rate_formula = '=(' + rate + ")*1000"
-                if event_type in l.events:
-                    w_sheet.cell(row=row, column=first_col).value = len(l.events[event_type])
-                    total_events += len(l.events[event_type])
-                else:
-                    w_sheet.cell(row=row, column=first_col).value = 0
-                w_sheet.cell(row=row, column=second_col).value = rate_formula
-
-            rate = string.ascii_uppercase[all_events_col - 1] + str(row) + "/F" + str(row)
-            rate_formula = '=(' + rate + ")*1000"
-            w_sheet.cell(row=row, column=all_events_col).value = total_events
-            w_sheet.cell(row=row, column=all_rates_col).value = rate_formula
+            # w_sheet['J' + str(row)].number_format = 'dd-mmm-yy'
 
             row += 1
-    w_sheet.cell(row=1, column=(w_sheet.max_column - 1)).value = 'ALL EVENTS'
-    w_sheet.cell(row=1, column=w_sheet.max_column).value = 'ALL EVENT RATE (x1000)'
 
     #adjust cell width for titles
     index = 1
@@ -278,7 +318,7 @@ def generate_line_output(path, patients, events):
         w_sheet.column_dimensions[cell.get_column_letter(index)].width = max(10, len(col[0].value))
         index += 1
 
-    work_book.save(path + "/Output Individual Line.xlsx")
+    work_book.save(path + "/" + title + " - Output Individual Line.xlsx")
 
 def calculate_total_cath_days(p):
     """Returns the total number of days a Patient has ANY catheter."""
@@ -303,7 +343,12 @@ class Patient():
     def __init__(self, patient_id):
         self.visits = []
         self.lines = []
-        self.events = {}
+        #self.events = {} # possibly becoming depricated. Review for later. Comment meant to trigger pylint.
+
+        #list of clabsis and possible clanc events
+        self.clabsis = []
+        self.clancs = []
+
         self.patient_id = patient_id
         self.total_visit_time = None
         self.total_line_time = None
@@ -340,7 +385,7 @@ class Visit():
 @functools.total_ordering
 class Line():
     """Line Class stores data for a single Line in a Patient. Records a Dictionary of Events."""
-    def __init__(self, line_id, line_type, lumens, in_date, out_date):
+    def __init__(self, line_id, line_type, lumens, in_date, out_date, removal_reason):
         self.line_type = line_type
         self.in_date = in_date
         self.out_date = out_date
@@ -348,7 +393,12 @@ class Line():
         self.lumens = lumens
         self.total_time = out_date - in_date
         self.lumen_days = self.total_time * self.lumens
-        self.events = {}
+        self.removal_reason = removal_reason
+
+
+        #list of clabsis and variable for possible clanc event
+        self.clabsis = []
+        self.clanc = None
 
     def __lt__(self, other):
         if self.in_date == other.in_date:
@@ -358,9 +408,22 @@ class Line():
     def __eq__(self, other):
         return self.in_date == other.in_date and self.out_date == other.out_date
 
-class Event():
-    """Event class records datetime info for a single Event."""
-    def __init__(self, patient, date, event_type):
+class CLABSI():
+    """Class for CLABSI event. used becuase required infectious information is more complicated"""
+    def __init__(self, patient, lines, date):
         self.patient = patient
-        self.event_date = date
-        self.event_type = event_type
+        self.lines = lines
+        self.date = date
+
+class CLANC(): 
+    """Class for CLANC event. used becuase required non-infect information is more complicated"""
+    def __init__(self, patient, line, date):
+        self.patient = patient
+        self.line = line
+        self.date = date
+
+class BadFormatException(Exception):
+    def __init__(self, value):
+        self.parameter = value
+    def __str__(self):
+        return self.parameter
