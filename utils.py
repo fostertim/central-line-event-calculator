@@ -226,9 +226,9 @@ def generate_patient_output(title, path, patients, events):
         w_sheet['G' + str(row)] = p.total_lumen_time.days
         w_sheet['H' + str(row)] = w_sheet['G' + str(row)].value / w_sheet['E' + str(row)].value
         w_sheet['I' + str(row)] = len(p.clabsis)
-        w_sheet['J' + str(row)] = w_sheet['I' + str(row)].value / w_sheet['E' + str(row)].value
+        w_sheet['J' + str(row)] = w_sheet['I' + str(row)].value / w_sheet['E' + str(row)].value * 1000
         w_sheet['K' + str(row)] = len(p.clancs)
-        w_sheet['L' + str(row)] = w_sheet['K' + str(row)].value / w_sheet['E' + str(row)].value
+        w_sheet['L' + str(row)] = w_sheet['K' + str(row)].value / w_sheet['E' + str(row)].value * 1000
         
         row += 1
 
@@ -243,6 +243,10 @@ def generate_patient_output(title, path, patients, events):
     w_sheet['F' + max_index] = '=C'+ str(max_index) + '/E' + str(max_index)
     w_sheet['G' + max_index] = '=SUM(G2:G' +  str(bottom) + ')'
     w_sheet['H' + max_index] = '=G'+ str(max_index) + '/E' + str(max_index)
+    w_sheet['I' + max_index] = '=SUM(I2:I' +  str(bottom) + ')'
+    w_sheet['J' + max_index] = '=I'+ str(max_index) + '/E' + str(max_index)  + "* 1000"
+    w_sheet['K' + max_index] = '=SUM(K2:K' +  str(bottom) + ')'
+    w_sheet['L' + max_index] = '=K'+ str(max_index) + '/E' + str(max_index) + "* 1000"
 
     #adjust cell width for titles
     index = 1
@@ -269,7 +273,7 @@ def generate_line_output(title, path, patients, events):
 
     w_sheet['H1'] = "Number CLABSIs"
     w_sheet['I1'] =  "Number of CLANCs"
-    w_sheet['J1'] =  "Time from CLANC to line removal"
+    w_sheet['J1'] =  "Time from CLANC to line removal (Days)"
     w_sheet['K1'] =  "Reason For Line Removal"
 
     w_sheet['L1'] =  "ALL EVENTS"
@@ -298,8 +302,11 @@ def generate_line_output(title, path, patients, events):
             if l.clanc is not None:
                 num_clancs = 1
             w_sheet['I' + str(row)] = num_clancs
-            diff = l.out_date - l.clanc_date
-            w_sheet['J' + str(row)] = l.out_date - l.clanc.date
+            if l.clanc.date is not None:
+                diff = l.out_date - l.clanc.date
+                w_sheet['J' + str(row)] = (l.out_date - l.clanc.date).days
+            else:
+                 w_sheet['J' + str(row)] = "No CLANC Reported"
             w_sheet['K' + str(row)] = l.removal_reason
 
             total_events = num_clancs + num_events
@@ -308,7 +315,7 @@ def generate_line_output(title, path, patients, events):
 
             w_sheet['D' + str(row)].number_format = 'dd-mmm-yy'
             w_sheet['E' + str(row)].number_format = 'dd-mmm-yy'
-            # w_sheet['J' + str(row)].number_format = 'dd-mmm-yy'
+            # w_sheet['J' + str(row)].number_format = 'dd'
 
             row += 1
 
