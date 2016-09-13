@@ -186,6 +186,7 @@ def read_clanc_data(path, patients):
         line.clanc = event
         index += 1
 
+
 def check_full_day_admit(in_time, out_time):
     """Returns True if Patient was admitted for at least 24 hours."""
     diff = out_time - in_time
@@ -233,20 +234,20 @@ def generate_patient_output(title, path, patients, events):
         row += 1
 
     #Summation Data
-    max_index = str(w_sheet.max_row)
-    bottom = w_sheet.max_row - 1
+    max_index = str(row)
+    bottom = row - 1
     w_sheet['A' + max_index] = 'Population Total'
     w_sheet['B' + max_index] = '=SUM(B2:B' + str(bottom) + ')'
     w_sheet['C' + max_index] = '=SUM(C2:C' + str(bottom) + ')'
-    w_sheet['D' + max_index] = '=C' + str(max_index) + '/B' + str(max_index)
+    w_sheet['D' + max_index] = '=C' + max_index + '/B' + max_index
     w_sheet['E' + max_index] = '=SUM(E2:E' + str(bottom) + ')'
-    w_sheet['F' + max_index] = '=C'+ str(max_index) + '/E' + str(max_index)
+    w_sheet['F' + max_index] = '=C'+ max_index + '/E' + max_index
     w_sheet['G' + max_index] = '=SUM(G2:G' +  str(bottom) + ')'
-    w_sheet['H' + max_index] = '=G'+ str(max_index) + '/E' + str(max_index)
+    w_sheet['H' + max_index] = '=G'+ max_index + '/E' + max_index
     w_sheet['I' + max_index] = '=SUM(I2:I' +  str(bottom) + ')'
-    w_sheet['J' + max_index] = '=I'+ str(max_index) + '/E' + str(max_index)  + "* 1000"
+    w_sheet['J' + max_index] = '=I'+ max_index + '/E' + max_index  + "* 1000"
     w_sheet['K' + max_index] = '=SUM(K2:K' +  str(bottom) + ')'
-    w_sheet['L' + max_index] = '=K'+ str(max_index) + '/E' + str(max_index) + "* 1000"
+    w_sheet['L' + max_index] = '=K'+ max_index + '/E' + max_index + "* 1000"
 
     #adjust cell width for titles
     index = 1
@@ -302,7 +303,7 @@ def generate_line_output(title, path, patients, events):
             if l.clanc is not None:
                 num_clancs = 1
             w_sheet['I' + str(row)] = num_clancs
-            if l.clanc.date is not None:
+            if l.clanc is not None:
                 diff = l.out_date - l.clanc.date
                 w_sheet['J' + str(row)] = (l.out_date - l.clanc.date).days
             else:
