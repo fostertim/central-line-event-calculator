@@ -1,8 +1,13 @@
 from tkinter import *
 from tkinter import ttk, filedialog
+from datetime import datetime
 
 from utils import *
-import os
+import os, sys
+
+###Options###
+start_range = datetime.min
+end_range = datetime.max
 
 def analyze(*args):
     admit = admit_entry.get()   
@@ -22,7 +27,7 @@ def analyze(*args):
 
     # verify_admit_data(admit_entry.get())
     try:
-        process_data(title, admit, line, clabsi, clanc, output)
+        process_data(title, admit, line, clabsi, clanc, output, start_range, end_range)
     except BadFormatException as e:
         error_message("Invalid SpreadSheet Format", str(e))
         return
@@ -59,8 +64,108 @@ def output_path(*args):
     output_entry.delete(0, 'end')
     output_entry.insert(0, output_loc)
 
+
+
 root = Tk()
 root.title("Central Line Event Calculator")
+
+options_open = False
+
+
+def display_options():
+    global options_open
+    if options_open:
+        return
+    options_open = True
+
+    option = Tk()
+    option.title("Options")
+
+    def save_options(*args):
+        tmp_start = datetime.min
+        tmp_end = datetime.max 
+        
+        start_mo = ("00" + start_mo_entry.get())[-2:]
+        start_day = ("00" + start_day_entry.get())[-2:]
+        start_yr = ("0000" + start_yr_entry.get())[-4:]
+        end_mo = ("00" + end_mo_entry.get())[-2:]
+        end_day = ("00" + end_day_entry.get())[-2:]
+        end_yr = ("0000" + end_yr_entry.get())[-4:]
+        try:
+            start = start_mo + start_day + start_yr
+            tmp_start = datetime.strptime(start, '%m%d%Y')
+        except ValueError as e:
+            print(e)
+        try:
+            global end_range
+            end = end_mo + end_day + end_yr
+            tmp_end = datetime.strptime(end, '%m%d%Y')
+        except ValueError as e:
+            print(e)
+        
+        if tmp_start >= tmp_end:
+            error_message("Invalid Date Range", "Start date must be before end date.")
+        else:
+            global start_range, end_range
+            start_range, end_range = tmp_start, tmp_end
+        close_options()
+        return
+
+    def close_options():
+        global options_open
+        option.destroy()
+        options_open = False
+
+    opt_frame = ttk.Frame(option, padding="3 3 12 12")
+    opt_frame.grid(column=0, row=0, sticky=(N, W, E, S))
+    opt_frame.columnconfigure(0, weight=1)
+    opt_frame.rowconfigure(0, weight=1)
+
+    start_date_mo = StringVar()
+    start_date_day = StringVar()
+    start_date_yr = StringVar()
+    end_date_mo = StringVar()
+    end_date_day = StringVar()
+    end_date_yr = StringVar()
+
+    ttk.Label(opt_frame, text="Start Date:").grid(column=1, row=2, sticky=(W, E))
+    ttk.Label(opt_frame, text="End Date:").grid(column=1, row=3, sticky=(W, E))
+
+    ttk.Label(opt_frame, text="MM").grid(column=2, row=1, sticky=(E))
+    ttk.Label(opt_frame, text="DD").grid(column=3, row=1, sticky=(E))
+    ttk.Label(opt_frame, text="YYYY").grid(column=4, row=1, sticky=(E))
+
+    start_mo_entry = ttk.Entry(opt_frame, width=5, textvariable=start_date_mo)
+    start_day_entry = ttk.Entry(opt_frame, width=5, textvariable=start_date_day)
+    start_yr_entry = ttk.Entry(opt_frame, width=10, textvariable=start_date_yr)
+    end_mo_entry = ttk.Entry(opt_frame, width=5, textvariable=end_date_mo)
+    end_day_entry = ttk.Entry(opt_frame, width=5, textvariable=end_date_day)
+    end_yr_entry = ttk.Entry(opt_frame, width=10, textvariable=end_date_yr)
+
+    start_mo_entry.insert(0, start_range.month)
+    start_day_entry.insert(0, start_range.day)
+    start_yr_entry.insert(0, start_range.year)
+    end_mo_entry.insert(0, end_range.month)
+    end_day_entry.insert(0, end_range.day)
+    end_yr_entry.insert(0, end_range.year)
+
+    start_mo_entry.grid(column=2, row=2, sticky=(W, E))
+    start_day_entry.grid(column=3, row=2, sticky=(W, E))
+    start_yr_entry.grid(column=4, row=2, sticky=(W, E))
+    end_mo_entry.grid(column=2, row=3, sticky=(W, E))
+    end_day_entry.grid(column=3, row=3, sticky=(W, E))
+    end_yr_entry.grid(column=4, row=3, sticky=(W, E))
+
+    ttk.Button(opt_frame, text="Save", command=save_options).grid(column=4, row=4, sticky=E)
+    ttk.Button(opt_frame, text="Cancel", command=close_options).grid(column=3, row=4, sticky=E)
+
+
+    for child in opt_frame.winfo_children():
+        child.grid_configure(padx=5, pady=5)
+
+    option.protocol("WM_DELETE_WINDOW", close_options)
+    option.bind('<Return>', save_options)
+    root.bind('<Return>', save_options)
 
 mainframe = ttk.Frame(root, padding="3 3 12 12")
 mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
@@ -125,7 +230,16 @@ ttk.Label(mainframe, text="Output Destination").grid(column=1, row=6, sticky=W)
 ttk.Button(mainframe, text="Continue", command=analyze).grid(column=3, row=7, sticky=E)
 root.bind('<Return>', analyze)
 
+ttk.Button(mainframe, text="Options", command=display_options).grid(column=2, row=7, sticky=E)
+
+
 for child in mainframe.winfo_children():
     child.grid_configure(padx=5, pady=5)
 
+def on_close():
+    sys.exit()
+
+root.protocol("WM_DELETE_WINDOW", on_close)
+
 root.mainloop()
+

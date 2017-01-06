@@ -2,7 +2,10 @@
 
 from tkinter import filedialog, messagebox
 from openpyxl import Workbook, load_workbook, cell
-from datetime import datetime
+from openpyxl.utils import get_column_letter
+from openpyxl.styles import PatternFill, colors
+
+from datetime import datetime, timedelta
 
 import functools
 import string
@@ -61,18 +64,18 @@ def verify_excel_file(path):
         return True
     return False
 
-def process_data(title, admit_path, line_path, clabsi_path,  clanc_path, out_path):
+def process_data(title, admit_path, line_path, clabsi_path,  clanc_path, out_path, start_range, end_range):
     """Read in each file and writes results to the out_path."""
     events = {}
-    patients = read_patient_data(admit_path)
-    read_line_data(line_path, patients)
+    patients = read_patient_data(admit_path, start_range, end_range)
+    read_line_data(line_path, patients, start_range, end_range)
     read_clabsi_data(clabsi_path, patients)
     read_clanc_data(clanc_path, patients)
     generate_patient_output(title, out_path, patients, events)
     generate_line_output(title, out_path, patients, events)
     return True
 
-def read_patient_data(path):
+def read_patient_data(path, start_range, end_range):
     """Read in patient admit data. Returns a dictionary of Patient objects (Key: ID Number)."""
     work_book = load_workbook(path, read_only=True)
     w_sheet = work_book.active
@@ -91,6 +94,10 @@ def read_patient_data(path):
         if not isinstance(in_date, datetime):
             raise BadFormatException("Patient Disscharge Dates in Column C of Patient Data must be dates.")
 
+        if out_date < start_range or in_date > end_range:
+            index += 1
+            continue
+
         if not p_id in patients:
             p = Patient(p_id)
             patients[p_id] = p
@@ -99,7 +106,7 @@ def read_patient_data(path):
         index += 1
     return patients
 
-def read_line_data(path, patients):
+def read_line_data(path, patients, start_range, end_range):
     """Read in line data. Stores lines as Line objects associated with Patient IDs."""
     work_book = load_workbook(path, read_only=True)
     w_sheet = work_book.active
@@ -116,8 +123,8 @@ def read_line_data(path, patients):
         removal_reason = w_sheet['H' + str(index)].value
 
         # Spreadsheet format check
-        if not isinstance(p_id, int):
-            raise BadFormatException("Patient ID Numbers in Column A of Line Data must be numbers.")
+        # if not isinstance(p_id, int):
+        #     raise BadFormatException("Patient ID Numbers in Column A of Line Data must be numbers.")
         if not isinstance(line_id, int):
             raise BadFormatException("Line ID Numbers in Column B of Line Data must be numbers.")
         if not isinstance(line_type, str):
@@ -130,9 +137,22 @@ def read_line_data(path, patients):
             raise BadFormatException("Patient Disscharge Dates in Column F and G of Patient Data must be dates.")
         if not isinstance(removal_reason, str) and removal_reason is not None:
             raise BadFormatException("Reason For Removal in Column H of Line Data must be text.")
-       
+        
+        #Check Dates
+        if (in_date < start_range and out_date < start_range) or (in_date > end_range):
+            index += 1
+            continue #Do not add dates outside of range 
+        #commented out because i think it confuses the end result.
+        # elif in_date < start_range and out_date > start_range:
+        #     in_date = start_range
+        # elif in_date < end_range and out_date > end_range:
+        #     out_date = end_range
+
         l = Line(line_id, line_type, lumens, in_date, out_date, removal_reason)
-        patients[p_id].add_line(l)
+        if p_id in patients:    
+            patients[p_id].add_line(l)
+        else:
+            print("missing patient id " + str(p_id))
         index += 1
 
 def read_clabsi_data(path, patients):
@@ -148,16 +168,24 @@ def read_clabsi_data(path, patients):
         if not isinstance(clabsi_date, datetime):
             raise BadFormatException("CLABSI Date in Column B of CLABSI Data must be a date.")
 
-        p = patients[p_id]
-        lines = []
+        if p_id in patients:    
+            p = patients[p_id]
+            lines = []
+            for l in p.lines:
+                if l.in_date <= clabsi_date and l.out_date >= clabsi_date:
+                    lines.append(l)
 
-        for l in p.lines:
-            if l.in_date <= clabsi_date and l.out_date >= clabsi_date:
-                lines.append(l)
+            event = CLABSI(p, lines, clabsi_date)
+            for visit in p.visits:
+                if clabsi_date > visit.check_in_date and clabsi_date <= visit.check_out_date + timedelta(days=1):
+                    event.inpatient = True
+                else:
+                    event.inpatient = False
 
-        event = CLABSI(p, lines, clabsi_date)
-
-        p.clabsis.append(event)
+            p.clabsis.append(event)
+        else:
+            print("missing patient id " + str(p_id))
+       
         index += 1
 
 
@@ -177,13 +205,26 @@ def read_clanc_data(path, patients):
         if not isinstance(clanc_date, datetime):
             raise BadFormatException("CLABSI Date in Column C of CLANC Data must be a date.")
         
-        p = patients[p_id]
-        line = [l for l in p.lines if line_id == l.line_id][0]
+        if p_id in patients:
+            p = patients[p_id]
+            line = [l for l in p.lines if line_id == l.line_id]
+            if line:
+                line = line[0]
+            else:
+                print("Line ID not found: " + str(line_id))
+                index += 1
+                continue
+            event = CLANC(p, line, clanc_date)
+            for visit in p.visits:
+                if clanc_date >= visit.check_in_date and clanc_date <= visit.check_out_date:
+                    event.inpatient = True
+                else:
+                    event.inpatient = False
 
-        event = CLANC(p, line, clanc_date)
-
-        p.clancs.append(event)
-        line.clanc = event
+            p.clancs.append(event)
+            line.clanc = event
+        else:
+            print("missing patient id " + str(p_id))
         index += 1
 
 
@@ -204,32 +245,60 @@ def generate_patient_output(title, path, patients, events):
     w_sheet['A1'] = 'Patient ID'
     w_sheet['B1'] = 'Total Lines'
     w_sheet['C1'] = 'Sum of all Line Days'
-    w_sheet['D1'] = 'Mean Duration of Line (Days)'
-    w_sheet['E1'] = 'Total Days with any Catheter'
-    w_sheet['F1'] = 'Catheter Density (Sum of all Line Days/Total Days with any catheter)'
-    w_sheet['G1'] = 'Sum of all Lumen Days'
-    w_sheet['H1'] = 'Lumen Density (Sum of all Lumen Days/Total Days with any cather)'
-    w_sheet['I1'] = 'CLABSIs'
-    w_sheet['J1'] = "CLABSI Rate (x1000)"
-    w_sheet['K1'] = 'CLANCs'
-    w_sheet['L1'] = "CLANC Rate (x1000)"
+    w_sheet['D1'] = 'Inpatient Line Days'
+    w_sheet['E1'] = 'Outpatient Line Days'
+    w_sheet['F1'] = 'Mean Duration of Line (Days)'
+    w_sheet['G1'] = 'Total Days with any Catheter'
+    w_sheet['H1'] = 'Catheter Density (Sum of all Line Days/Total Days with any catheter)'
+    w_sheet['I1'] = 'Sum of all Lumen Days'
+    w_sheet['J1'] = 'Lumen Density (Sum of all Lumen Days/Total Days with any cather)'
+    w_sheet['K1'] = 'CLABSIs'
+    w_sheet['L1'] = 'Inpatient CLABSIs'
+    w_sheet['M1'] = 'Outpatien CLABSIs'
+    w_sheet['N1'] = "CLABSI Rate (x1000)"
+    w_sheet['O1'] = 'CLANCs'
+    w_sheet['P1'] = 'Inpatient CLANCs'
+    w_sheet['Q1'] = 'Outpatient CLANCs'
+    w_sheet['R1'] = "CLANC Rate (x1000)"
 
     row = 2
     for p_id in patients:
         p = patients[p_id]
+        calculate_inpatient_line_days(p)
+        
+        in_clabsi = 0
+        out_clabsi = 0
+        in_clanc = 0
+        out_clanc = 0
+        for e in p.clabsis:
+            if e.inpatient:
+                in_clabsi += 1
+            else:
+                out_clabsi += 1
+        for e in p.clancs:
+            if e.inpatient:
+                in_clanc += 1
+            else:
+                out_clanc += 1
 
         w_sheet['A' + str(row)] = p_id
         w_sheet['B' + str(row)] = len(p.lines)
         w_sheet['C' + str(row)] = p.total_line_time.days
-        w_sheet['D' + str(row)] = p.total_line_time.days/len(p.lines)
-        w_sheet['E' + str(row)] = calculate_total_cath_days(p)
-        w_sheet['F' + str(row)] = w_sheet['C' + str(row)].value / w_sheet['E' + str(row)].value
-        w_sheet['G' + str(row)] = p.total_lumen_time.days
-        w_sheet['H' + str(row)] = w_sheet['G' + str(row)].value / w_sheet['E' + str(row)].value
-        w_sheet['I' + str(row)] = len(p.clabsis)
-        w_sheet['J' + str(row)] = w_sheet['I' + str(row)].value / w_sheet['E' + str(row)].value * 1000
-        w_sheet['K' + str(row)] = len(p.clancs)
-        w_sheet['L' + str(row)] = w_sheet['K' + str(row)].value / w_sheet['E' + str(row)].value * 1000
+        w_sheet['D' + str(row)] = p.inpatient_line_time.days
+        w_sheet['E' + str(row)] = p.total_line_time.days - p.inpatient_line_time.days
+        w_sheet['F' + str(row)] = p.total_line_time.days/len(p.lines) if p.lines else 0
+        w_sheet['G' + str(row)] = calculate_total_cath_days(p) if p.lines else 0
+        w_sheet['H' + str(row)] = w_sheet['C' + str(row)].value / w_sheet['G' + str(row)].value if p.lines else 0
+        w_sheet['I' + str(row)] = p.total_lumen_time.days
+        w_sheet['J' + str(row)] = w_sheet['I' + str(row)].value / w_sheet['G' + str(row)].value if p.lines else 0 
+        w_sheet['K' + str(row)] = len(p.clabsis)
+        w_sheet['L' + str(row)] = in_clabsi
+        w_sheet['M' + str(row)] = out_clabsi
+        w_sheet['N' + str(row)] = w_sheet['K' + str(row)].value / w_sheet['G' + str(row)].value * 1000 if p.lines else 0
+        w_sheet['O' + str(row)] = len(p.clancs)
+        w_sheet['P' + str(row)] = in_clanc
+        w_sheet['Q' + str(row)] = out_clanc
+        w_sheet['R' + str(row)] = w_sheet['O' + str(row)].value / w_sheet['G' + str(row)].value * 1000 if p.lines else 0
         
         row += 1
 
@@ -239,20 +308,23 @@ def generate_patient_output(title, path, patients, events):
     w_sheet['A' + max_index] = 'Population Total'
     w_sheet['B' + max_index] = '=SUM(B2:B' + str(bottom) + ')'
     w_sheet['C' + max_index] = '=SUM(C2:C' + str(bottom) + ')'
-    w_sheet['D' + max_index] = '=C' + max_index + '/B' + max_index
+    w_sheet['D' + max_index] = '=SUM(D2:D' + str(bottom) + ')'
     w_sheet['E' + max_index] = '=SUM(E2:E' + str(bottom) + ')'
-    w_sheet['F' + max_index] = '=C'+ max_index + '/E' + max_index
-    w_sheet['G' + max_index] = '=SUM(G2:G' +  str(bottom) + ')'
-    w_sheet['H' + max_index] = '=G'+ max_index + '/E' + max_index
+    w_sheet['F' + max_index] = '=C' + max_index + '/B' + max_index
+    w_sheet['G' + max_index] = '=SUM(G2:G' + str(bottom) + ')'
+    w_sheet['H' + max_index] = '=C'+ max_index + '/G' + max_index
     w_sheet['I' + max_index] = '=SUM(I2:I' +  str(bottom) + ')'
-    w_sheet['J' + max_index] = '=I'+ max_index + '/E' + max_index  + "* 1000"
+    w_sheet['J' + max_index] = '=G'+ max_index + '/G' + max_index
     w_sheet['K' + max_index] = '=SUM(K2:K' +  str(bottom) + ')'
-    w_sheet['L' + max_index] = '=K'+ max_index + '/E' + max_index + "* 1000"
+    w_sheet['N' + max_index] = '=K'+ max_index + '/G' + max_index  + "* 1000"
+    w_sheet['O' + max_index] = '=SUM(O2:O' +  str(bottom) + ')'
+    w_sheet['R' + max_index] = '=O'+ max_index + '/G' + max_index + "* 1000"
 
     #adjust cell width for titles
     index = 1
     for col in w_sheet.columns:
-        w_sheet.column_dimensions[cell.get_column_letter(index)].width = len(col[0].value)
+        w_sheet.column_dimensions[get_column_letter(index)].width = len(col[0].value)
+        col[-1].fill =  PatternFill(start_color='008000', end_color='008000', fill_type='solid')
         index += 1
 
     work_book.save(path + "/" + title + " - Output Individual Patient.xlsx")
@@ -270,15 +342,23 @@ def generate_line_output(title, path, patients, events):
     w_sheet['D1'] = 'Date of Insertion (or first evaluation)'
     w_sheet['E1'] = 'Date of Removal (or last evalulation)'
     w_sheet['F1'] = 'Line Days (any catheter)'
-    w_sheet['G1'] = 'Lumen Days (Line Days x Number of Lumens)'
+    w_sheet['G1'] = 'Inpatient Line Days (any catheter)'
+    w_sheet['H1'] = 'Outpatient Line Days (any catheter)'
+    w_sheet['I1'] = 'Lumen Days (Line Days x Number of Lumens)'
+    w_sheet['J1'] = 'Inpatient Lumen Days (Line Days x Number of Lumens)'
+    w_sheet['K1'] = 'Outpatient Lumen Days (Line Days x Number of Lumens)'
 
-    w_sheet['H1'] = "Number CLABSIs"
-    w_sheet['I1'] =  "Number of CLANCs"
-    w_sheet['J1'] =  "Time from CLANC to line removal (Days)"
-    w_sheet['K1'] =  "Reason For Line Removal"
+    w_sheet['L1'] = "Number of Inpatient CLABSIs"
+    w_sheet['M1'] = "Number of Outpatient CLABSIs"
+    w_sheet['N1'] = "Total CLABSIs"
+    w_sheet['O1'] =  "Number of Inpatient CLANCs"
+    w_sheet['P1'] =  "Number of Outpatient CLANCs"
+    w_sheet['Q1'] =  "Total CLANCs"
+    w_sheet['R1'] =  "Time from CLANC to line removal (Days)"
+    w_sheet['S1'] =  "Reason For Line Removal"
 
-    w_sheet['L1'] =  "ALL EVENTS"
-    w_sheet['M1'] =  "ALL EVENT RATE (x1000)"
+    w_sheet['T1'] =  "ALL EVENTS"
+    w_sheet['U1'] =  "ALL EVENT RATE (x1000)"
 
     row = 2
     for p_id in patients:
@@ -290,29 +370,45 @@ def generate_line_output(title, path, patients, events):
             w_sheet['D' + str(row)] = l.in_date
             w_sheet['E' + str(row)] = l.out_date
             w_sheet['F' + str(row)] = l.total_time.days
-            w_sheet['G' + str(row)] = l.lumen_days.days
+            w_sheet['G' + str(row)] = l.inpatient_line_time.days
+            w_sheet['H' + str(row)] = l.total_time.days - l.inpatient_line_time.days
+            w_sheet['I' + str(row)] = l.lumen_days.days
+            w_sheet['J' + str(row)] = l.inpatient_lumen_time.days
+            w_sheet['K' + str(row)] = l.lumen_days.days - l.inpatient_lumen_time.days
 
-            num_events = 0
+            num_inpatient = 0
+            num_outpatient = 0
             for e in p.clabsis:
                 if l in e.lines:
-                    num_events += 1/(len(e.lines))
+                    if e.inpatient:
+                        num_inpatient += 1/(len(e.lines))
+                    else:
+                        num_outpatient += 1/(len(e.lines))
 
-            w_sheet['H' + str(row)] = num_events
+            w_sheet['L' + str(row)] = num_inpatient
+            w_sheet['M' + str(row)] = num_outpatient
+            w_sheet['N' + str(row)] = num_inpatient + num_outpatient
 
-            num_clancs = 0
+            num_in_clancs = 0
+            num_out_clancs = 0
             if l.clanc is not None:
-                num_clancs = 1
-            w_sheet['I' + str(row)] = num_clancs
-            if l.clanc is not None:
+                if l.clanc.inpatient:
+                    num_in_clancs = 1
+                else:
+                    num_outpatient = 1
                 diff = l.out_date - l.clanc.date
-                w_sheet['J' + str(row)] = (l.out_date - l.clanc.date).days
+                w_sheet['R' + str(row)] = diff.days
             else:
-                 w_sheet['J' + str(row)] = "No CLANC Reported"
-            w_sheet['K' + str(row)] = l.removal_reason
+                 w_sheet['R' + str(row)] = "No CLANC Reported"
+            w_sheet['O' + str(row)] = num_in_clancs
+            w_sheet['P' + str(row)] = num_out_clancs
+            w_sheet['Q' + str(row)] = num_in_clancs + num_out_clancs
 
-            total_events = num_clancs + num_events
-            w_sheet['L' + str(row)] = total_events
-            w_sheet['M' + str(row)] = (total_events / l.total_time.days) * 1000
+            w_sheet['S' + str(row)] = l.removal_reason
+
+            total_events = num_in_clancs + num_out_clancs + num_inpatient + num_outpatient
+            w_sheet['T' + str(row)] = total_events
+            w_sheet['U' + str(row)] = (total_events / l.total_time.days) * 1000
 
             w_sheet['D' + str(row)].number_format = 'dd-mmm-yy'
             w_sheet['E' + str(row)].number_format = 'dd-mmm-yy'
@@ -323,7 +419,7 @@ def generate_line_output(title, path, patients, events):
     #adjust cell width for titles
     index = 1
     for col in w_sheet.columns:
-        w_sheet.column_dimensions[cell.get_column_letter(index)].width = max(10, len(col[0].value))
+        w_sheet.column_dimensions[get_column_letter(index)].width = max(10, len(col[0].value))
         index += 1
 
     work_book.save(path + "/" + title + " - Output Individual Line.xlsx")
@@ -346,6 +442,24 @@ def calculate_total_cath_days(p):
             current = l
     return total_days.days
 
+def calculate_inpatient_line_days(p):
+    for v in p.visits:
+        for l in p.lines:
+            if v.check_in_date > l.in_date and v.check_out_date < l.in_date:
+                p.inpatient_line_time += v.check_out_date - v.check_in_date
+                l.inpatient_line_time += v.check_out_date - v.check_in_date
+            elif v.check_in_date <= l.in_date and v.check_out_date >= l.out_date:
+                p.inpatient_line_time += l.out_date - l.in_date
+                l.inpatient_line_time += l.out_date - l.in_date
+            elif v.check_in_date <= l.in_date and v.check_out_date < l.out_date:
+                p.inpatient_line_time += v.check_out_date - l.in_date
+                l.inpatient_line_time += v.check_out_date - l.in_date
+            elif v.check_in_date > l.in_date and v.check_out_date <= l.out_date:
+                p.inpatient_line_time += l.out_date - v.check_in_date
+                l.inpatient_line_time += l.out_date - v.check_in_date
+            l.inpatient_lumen_time = l.lumens * l.inpatient_line_time
+    p.inpatient_lumen_time += l.lumens * p.inpatient_line_time
+
 class Patient():
     """Patient Class contains lists of Visits, Lines and a Dictionary of Events."""
     def __init__(self, patient_id):
@@ -358,9 +472,11 @@ class Patient():
         self.clancs = []
 
         self.patient_id = patient_id
-        self.total_visit_time = None
-        self.total_line_time = None
-        self.total_lumen_time = None
+        self.total_visit_time = timedelta(0)
+        self.total_line_time = timedelta(0)
+        self.total_lumen_time = timedelta(0)
+        self.inpatient_line_time = timedelta(0)
+        self.inpatient_lumen_time = timedelta(0)
 
     def add_visit(self, v):
         """Adds a Visit object to the list of Visits and adds the time to total_visit_time."""
@@ -402,6 +518,8 @@ class Line():
         self.total_time = out_date - in_date
         self.lumen_days = self.total_time * self.lumens
         self.removal_reason = removal_reason
+        self.inpatient_line_time = timedelta(0)
+        self.inpatient_lumen_time = timedelta(0)
 
 
         #list of clabsis and variable for possible clanc event

@@ -5,8 +5,8 @@ block_cipher = None
 
 a = Analysis(['central-line-event-calculator.py'],
              pathex=['d:\\projects\\med\\central-line-event-calculator'],
-             binaries=None,
-             datas=None,
+             binaries=[],
+             datas=[],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
@@ -25,4 +25,4 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=True,
-          console=False )
+          console=True )
