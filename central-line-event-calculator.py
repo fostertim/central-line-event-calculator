@@ -31,11 +31,11 @@ def analyze(*args):
     except BadFormatException as e:
         error_message("Invalid SpreadSheet Format", str(e))
         return
-    except Exception as e:
-        #comment out for terminal tracebacks.
-        #always uncomment for production releases.
-        error_message("Execution Error", str(e))
-        return
+    # except Exception as e:
+    #     #comment out for terminal tracebacks.
+    #     #always uncomment for production releases.
+    #     error_message("Execution Error", str(e))
+    #     return
 
     os.startfile(output)
 
@@ -211,11 +211,11 @@ output_browse_button.grid(column=3, row=6, sticky=(W, E))
 
 
 # Local testing paths for sample data.  DO NOT include in production
-# admit_entry.insert(0, "D:/projects/med/sampledata/in/Admit and Discharge Input Data.xlsx")
-# line_entry.insert(0, "D:/projects/med/sampledata/in/Sample Input Line Data.xlsx")
-# clabsi_entry.insert(0, "D:/projects/med/sampledata/in/CLABSI Date Input.xlsx")
-# clanc_entry.insert(0, "D:/projects/med/sampledata/in/CLANC Date Input.xlsx")
-# output_entry.insert(0, "D:/projects/med/sampledata/out")
+admit_entry.insert(0, "D:/projects/med/sampledata/in/Admit and Discharge Input Data.xlsx")
+line_entry.insert(0, "D:/projects/med/sampledata/in/Sample Input Line Data.xlsx")
+clabsi_entry.insert(0, "D:/projects/med/sampledata/in/CLABSI Date Input.xlsx")
+clanc_entry.insert(0, "D:/projects/med/sampledata/in/CLANC Date Input.xlsx")
+output_entry.insert(0, "D:/projects/med/sampledata/out")
 
 
 ttk.Label(mainframe, text="Project Title").grid(column=1, row=1, sticky=W)
