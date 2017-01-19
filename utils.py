@@ -429,10 +429,10 @@ def generate_line_output(title, path, patients, events):
 
             total_events = num_in_clancs + num_out_clancs + num_inpatient + num_outpatient
             w_sheet['T' + str(row)] = total_events
-            w_sheet['U' + str(row)] = ((total_events / l.total_time.days) * 1000) if l.total_time else 0
+            w_sheet['U' + str(row)] = ((total_events / l.total_time.days) * 1000) if l.total_time.days else 0
             
             #clasbi in/out rate
-            w_sheet['V' + str(row)] = ((num_inpatient / l.inpatient_line_time.days) * 1000) if l.inpatient_line_time else 0
+            w_sheet['V' + str(row)] = ((num_inpatient / l.inpatient_line_time.days) * 1000) if l.inpatient_line_time.days else 0
             w_sheet['W' + str(row)] = ((num_outpatient / (l.total_time.days - l.inpatient_line_time.days)) * 1000) if (l.total_time.days - l.inpatient_line_time.days) else 0
 
             #clanc in/out rate
@@ -471,12 +471,12 @@ def calculate_total_cath_days(p, start_range, end_range):
     else:
         return 0
 
-
-
 def calculate_inpatient_line_days(p):
     for v in p.visits:
         for l in p.lines:
-            if v.check_in_date > l.in_date and v.check_out_date < l.out_date:
+            if l.out_date < v.check_in_date or l.in_date > v.check_out_date:
+                continue
+            elif v.check_in_date > l.in_date and v.check_out_date < l.out_date:
                 p.inpatient_line_time += v.check_out_date - v.check_in_date
                 l.inpatient_line_time += v.check_out_date - v.check_in_date
             elif v.check_in_date <= l.in_date and v.check_out_date >= l.out_date:

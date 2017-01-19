@@ -2,7 +2,6 @@ missing module named resource - imported by posix, d:\projects\med\central-line-
 missing module named posix - imported by os, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py
 missing module named _posixsubprocess - imported by subprocess, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py
 missing module named 'org.python' - imported by pickle, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py, xml.sax
-missing module named ce - imported by os, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py
 missing module named readline - imported by cmd, code, pdb, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py
 excluded module named _frozen_importlib - imported by importlib, importlib.abc, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py
 missing module named _frozen_importlib_external - imported by importlib._bootstrap, importlib, importlib.abc, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py
@@ -13,9 +12,10 @@ missing module named 'java.lang' - imported by platform, d:\projects\med\central
 missing module named vms_lib - imported by platform, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py
 missing module named termios - imported by tty, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py, getpass
 missing module named grp - imported by tarfile, shutil, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py
-missing module named _dummy_threading - imported by dummy_threading, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py
-missing module named org - imported by copy, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py
 missing module named pwd - imported by posixpath, tarfile, shutil, http.server, webbrowser, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py, netrc, getpass
+missing module named ce - imported by os, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py
+missing module named org - imported by copy, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py
+missing module named _dummy_threading - imported by dummy_threading, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py
 missing module named lxml - imported by openpyxl.xml
 missing module named 'lxml.etree' - imported by openpyxl.xml.functions
 missing module named _abcoll - imported by openpyxl.compat.odict
