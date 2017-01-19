@@ -14,8 +14,8 @@ missing module named termios - imported by tty, d:\projects\med\central-line-eve
 missing module named grp - imported by tarfile, shutil, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py
 missing module named pwd - imported by posixpath, tarfile, shutil, http.server, webbrowser, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py, netrc, getpass
 missing module named ce - imported by os, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py
-missing module named org - imported by copy, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py
 missing module named _dummy_threading - imported by dummy_threading, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py
+missing module named org - imported by copy, d:\projects\med\central-line-event-calculator\central-line-event-calculator.py
 missing module named lxml - imported by openpyxl.xml
 missing module named 'lxml.etree' - imported by openpyxl.xml.functions
 missing module named _abcoll - imported by openpyxl.compat.odict
