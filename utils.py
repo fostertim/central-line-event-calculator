@@ -436,7 +436,7 @@ def generate_line_output(title, path, patients, events):
             w_sheet['W' + str(row)] = ((num_outpatient / (l.total_time.days - l.inpatient_line_time.days)) * 1000) if (l.total_time.days - l.inpatient_line_time.days) else 0
 
             #clanc in/out rate
-            w_sheet['X' + str(row)] = ((num_in_clancs / l.inpatient_line_time.days) * 1000) if l.inpatient_line_time else 0
+            w_sheet['X' + str(row)] = ((num_in_clancs / l.inpatient_line_time.days) * 1000) if l.inpatient_line_time.days else 0
             w_sheet['Y' + str(row)] = ((num_out_clancs / (l.total_time.days - l.inpatient_line_time.days)) * 1000) if (l.total_time.days - l.inpatient_line_time.days) else 0
             w_sheet['D' + str(row)].number_format = 'dd-mmm-yy'
             w_sheet['E' + str(row)].number_format = 'dd-mmm-yy'
@@ -464,12 +464,20 @@ def calculate_total_cath_days(p, start_range, end_range):
         elif l.in_date > end_range:
             break
         lines_in_range += [l]
-    if lines_in_range:
-        s = lines_in_range[0].in_date if lines_in_range[0].in_date >= start_range else start_range
-        e = lines_in_range[-1].out_date if lines_in_range[-1].out_date <= end_range else end_range
-        return (e-s).days
-    else:
-        return 0
+    date_range = []
+    index = 0
+    for l in lines_in_range:
+        if not date_range:
+            date_range += [[l.in_date, l.out_date]]
+        elif l.in_date > date_range[index][1]:
+            index += 1
+            date_range += [[l.in_date, l.out_date]]
+        elif l.out_date > date_range[index][1]:
+            date_range[index][1] = l.out_date
+    if date_range:
+        print(date_range[0][1] - date_range[0][0])
+    return sum([(r[1]-r[0]).days for r in date_range])
+
 
 def calculate_inpatient_line_days(p):
     for v in p.visits:
