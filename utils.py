@@ -266,6 +266,10 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
     w_sheet['T1'] = 'Inpatient CLANCs'
     w_sheet['U1'] = 'Outpatient CLANCs'
     w_sheet['V1'] = "CLANC Rate (x1000)"
+    w_sheet['W1'] = "ALL EVENT Rate (x1000)"
+
+    pop_inp = 0
+    pop_out = 0
 
     row = 2
     for p_id in patients:
@@ -290,6 +294,8 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
                 out_clanc += 1
 
         total_cath_days, inp_cath_days, outp_cath_days = calculate_total_cath_days(p, start_range, end_range) if p.lines else 0
+        pop_inp += inp_cath_days
+        pop_out += outp_cath_days
 
         w_sheet['A' + str(row)] = p_id
         w_sheet['B' + str(row)] = len(p.lines)
@@ -313,6 +319,7 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
         w_sheet['T' + str(row)] = in_clanc
         w_sheet['U' + str(row)] = out_clanc
         w_sheet['V' + str(row)] = (w_sheet['S' + str(row)].value / w_sheet['G' + str(row)].value * 1000) if w_sheet['G' + str(row)].value != 0 else 0
+        w_sheet['W' + str(row)] = ((w_sheet['R' + str(row)].value + w_sheet['R' + str(row)].value) / w_sheet['G' + str(row)].value * 1000) if w_sheet['G' + str(row)].value != 0 else 0
         
         row += 1
 
@@ -330,15 +337,18 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
     w_sheet['I' + max_index] = '=SUM(I2:I' +  str(bottom) + ')'
     w_sheet['J' + max_index] = '=SUM(J2:J' +  str(bottom) + ')'
     w_sheet['K' + max_index] = '=SUM(K2:K' +  str(bottom) + ')'
-    w_sheet['L' + max_index] = '=I'+ max_index + '/G' + max_index
-    w_sheet['M' + max_index] = '=SUM(M2:M' +  str(bottom) + ')'
-    w_sheet['N' + max_index] = '=SUM(N2:N' +  str(bottom) + ')'
+    w_sheet['L' + max_index] = '=J'+ max_index + '/' + str(pop_inp)
+    w_sheet['M' + max_index] = '=K'+ max_index + '/' + str(pop_out)
+    w_sheet['N' + max_index] = '=I'+ max_index + '/G' + max_index
     w_sheet['O' + max_index] = '=SUM(O2:O' +  str(bottom) + ')'
-    w_sheet['P' + max_index] = '=M'+ max_index + '/G' + max_index + "* 1000"
+    w_sheet['P' + max_index] = '=SUM(P2:P' +  str(bottom) + ')'
     w_sheet['Q' + max_index] = '=SUM(Q2:Q' +  str(bottom) + ')'
-    w_sheet['R' + max_index] = '=SUM(R2:R' +  str(bottom) + ')'
+    w_sheet['R' + max_index] = '=O'+ max_index + '/G' + max_index + "* 1000"
     w_sheet['S' + max_index] = '=SUM(S2:S' +  str(bottom) + ')'
-    w_sheet['T' + max_index] = '=Q'+ max_index + '/G' + max_index + "* 1000"
+    w_sheet['T' + max_index] = '=SUM(T2:T' +  str(bottom) + ')'
+    w_sheet['U' + max_index] = '=SUM(U2:U' +  str(bottom) + ')'
+    w_sheet['V' + max_index] = '=S'+ max_index + '/G' + max_index + "* 1000"
+    w_sheet['W' + max_index] = '=(V'+ max_index + '+ S' + max_index + ')/G' + max_index + "* 1000"
 
     #adjust cell width for titles
     index = 1
