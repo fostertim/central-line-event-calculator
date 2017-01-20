@@ -270,7 +270,7 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
         p = patients[p_id]
         calculate_inpatient_line_days(p)
         for l in p.lines:
-            p.inpatient_lumen_time += l.lumens * l.inpatient_lumen_time
+            p.inpatient_lumen_time += l.inpatient_lumen_time
 
         in_clabsi = 0
         out_clabsi = 0
@@ -395,7 +395,7 @@ def generate_line_output(title, path, patients, events):
             w_sheet['H' + str(row)] = l.total_time.days - l.inpatient_line_time.days
             w_sheet['I' + str(row)] = l.lumen_days.days
             w_sheet['J' + str(row)] = l.inpatient_lumen_time.days
-            w_sheet['K' + str(row)] = l.lumen_days.days - l.inpatient_lumen_time.days
+            w_sheet['K' + str(row)] = (l.lumen_days - l.inpatient_lumen_time).days
 
             num_inpatient = 0
             num_outpatient = 0
@@ -474,8 +474,6 @@ def calculate_total_cath_days(p, start_range, end_range):
             date_range += [[l.in_date, l.out_date]]
         elif l.out_date > date_range[index][1]:
             date_range[index][1] = l.out_date
-    if date_range:
-        print(date_range[0][1] - date_range[0][0])
     return sum([(r[1]-r[0]).days for r in date_range])
 
 
