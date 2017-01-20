@@ -324,7 +324,7 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
     w_sheet['I' + max_index] = '=SUM(I2:I' +  str(bottom) + ')'
     w_sheet['J' + max_index] = '=SUM(J2:J' +  str(bottom) + ')'
     w_sheet['K' + max_index] = '=SUM(K2:K' +  str(bottom) + ')'
-    w_sheet['L' + max_index] = '=I'+ max_index + '/G' + max_index  + "* 1000"
+    w_sheet['L' + max_index] = '=I'+ max_index + '/G' + max_index
     w_sheet['M' + max_index] = '=SUM(M2:M' +  str(bottom) + ')'
     w_sheet['N' + max_index] = '=SUM(N2:N' +  str(bottom) + ')'
     w_sheet['O' + max_index] = '=SUM(O2:O' +  str(bottom) + ')'
