@@ -291,8 +291,6 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
 
         total_cath_days, inp_cath_days, outp_cath_days = calculate_total_cath_days(p, start_range, end_range) if p.lines else 0
 
-        print(inp_cath_days, outp_cath_days)
-
         w_sheet['A' + str(row)] = p_id
         w_sheet['B' + str(row)] = len(p.lines)
         w_sheet['C' + str(row)] = p.total_line_time.days
