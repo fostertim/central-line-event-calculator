@@ -65,7 +65,7 @@ def output_path(*args):
     output_entry.insert(0, output_loc)
 
 
-
+print("Loading graphics...")
 root = Tk()
 root.title("Central Line Event Calculator")
 
@@ -210,7 +210,7 @@ output_browse_button = Button(mainframe, text='Browse', command=output_path)
 output_browse_button.grid(column=3, row=6, sticky=(W, E))
 
 
-# Local testing paths for sample data.  DO NOT include in production
+# # Local testing paths for sample data.  DO NOT include in production
 # admit_entry.insert(0, "D:/projects/med/sampledata/in/Admit and Discharge Input Data.xlsx")
 # line_entry.insert(0, "D:/projects/med/sampledata/in/Sample Input Line Data.xlsx")
 # clabsi_entry.insert(0, "D:/projects/med/sampledata/in/CLABSI Date Input.xlsx")
@@ -240,6 +240,6 @@ def on_close():
     sys.exit()
 
 root.protocol("WM_DELETE_WINDOW", on_close)
-
+print("Ready!")
 root.mainloop()
 

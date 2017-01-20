@@ -255,15 +255,17 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
     w_sheet['I1'] = 'Sum of all Lumen Days'
     w_sheet['J1'] = 'Inpatient Lumen Days'
     w_sheet['K1'] = 'Outpatient Lumen Days'
-    w_sheet['L1'] = 'Lumen Density (Sum of all Lumen Days/Total Days with any cather)'
-    w_sheet['M1'] = 'CLABSIs'
-    w_sheet['N1'] = 'Inpatient CLABSIs'
-    w_sheet['O1'] = 'Outpatient CLABSIs'
-    w_sheet['P1'] = "CLABSI Rate (x1000)"
-    w_sheet['Q1'] = 'CLANCs'
-    w_sheet['R1'] = 'Inpatient CLANCs'
-    w_sheet['S1'] = 'Outpatient CLANCs'
-    w_sheet['T1'] = "CLANC Rate (x1000)"
+    w_sheet['L1'] = 'Inpatient Lumen Density (Inpatient Lumen Days/Total Inpatient Days With A Catheter)'
+    w_sheet['M1'] = 'Outpatient Lumen Density (Outpatient Lumen Days/Total Outpatient Days With A Catheter)'
+    w_sheet['N1'] = 'Total Lumen Density (Sum of all Lumen Days/Total Days with any cather)'
+    w_sheet['O1'] = 'CLABSIs'
+    w_sheet['P1'] = 'Inpatient CLABSIs'
+    w_sheet['Q1'] = 'Outpatient CLABSIs'
+    w_sheet['R1'] = "CLABSI Rate (x1000)"
+    w_sheet['S1'] = 'CLANCs'
+    w_sheet['T1'] = 'Inpatient CLANCs'
+    w_sheet['U1'] = 'Outpatient CLANCs'
+    w_sheet['V1'] = "CLANC Rate (x1000)"
 
     row = 2
     for p_id in patients:
@@ -287,26 +289,32 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
             else:
                 out_clanc += 1
 
+        total_cath_days, inp_cath_days, outp_cath_days = calculate_total_cath_days(p, start_range, end_range) if p.lines else 0
+
+        print(inp_cath_days, outp_cath_days)
+
         w_sheet['A' + str(row)] = p_id
         w_sheet['B' + str(row)] = len(p.lines)
         w_sheet['C' + str(row)] = p.total_line_time.days
         w_sheet['D' + str(row)] = p.inpatient_line_time.days
         w_sheet['E' + str(row)] = p.total_line_time.days - p.inpatient_line_time.days
         w_sheet['F' + str(row)] = (p.total_line_time.days/len(p.lines)) if p.lines else 0
-        w_sheet['G' + str(row)] = calculate_total_cath_days(p, start_range, end_range) if p.lines else 0
+        w_sheet['G' + str(row)] = total_cath_days
         w_sheet['H' + str(row)] = (w_sheet['C' + str(row)].value / w_sheet['G' + str(row)].value) if w_sheet['G' + str(row)].value != 0 else 0
         w_sheet['I' + str(row)] = p.total_lumen_time.days #check
         w_sheet['J' + str(row)] = p.inpatient_lumen_time.days
         w_sheet['K' + str(row)] = p.total_lumen_time.days - p.inpatient_lumen_time.days
-        w_sheet['L' + str(row)] = (w_sheet['I' + str(row)].value / w_sheet['G' + str(row)].value) if w_sheet['G' + str(row)].value != 0 else 0 
-        w_sheet['M' + str(row)] = len(p.clabsis)
-        w_sheet['N' + str(row)] = in_clabsi
-        w_sheet['O' + str(row)] = out_clabsi
-        w_sheet['P' + str(row)] = (w_sheet['M' + str(row)].value / w_sheet['G' + str(row)].value * 1000) if w_sheet['G' + str(row)].value != 0 else 0
-        w_sheet['Q' + str(row)] = len(p.clancs)
-        w_sheet['R' + str(row)] = in_clanc
-        w_sheet['S' + str(row)] = out_clanc
-        w_sheet['T' + str(row)] = (w_sheet['Q' + str(row)].value / w_sheet['G' + str(row)].value * 1000) if w_sheet['G' + str(row)].value != 0 else 0
+        w_sheet['L' + str(row)] = (w_sheet['J' + str(row)].value / inp_cath_days) if inp_cath_days else 0 
+        w_sheet['M' + str(row)] = (w_sheet['K' + str(row)].value / outp_cath_days) if outp_cath_days else 0 
+        w_sheet['N' + str(row)] = (w_sheet['I' + str(row)].value / w_sheet['G' + str(row)].value) if w_sheet['G' + str(row)].value != 0 else 0 
+        w_sheet['O' + str(row)] = len(p.clabsis)
+        w_sheet['P' + str(row)] = in_clabsi
+        w_sheet['Q' + str(row)] = out_clabsi
+        w_sheet['R' + str(row)] = (w_sheet['O' + str(row)].value / w_sheet['G' + str(row)].value * 1000) if w_sheet['G' + str(row)].value != 0 else 0
+        w_sheet['S' + str(row)] = len(p.clancs)
+        w_sheet['T' + str(row)] = in_clanc
+        w_sheet['U' + str(row)] = out_clanc
+        w_sheet['V' + str(row)] = (w_sheet['S' + str(row)].value / w_sheet['G' + str(row)].value * 1000) if w_sheet['G' + str(row)].value != 0 else 0
         
         row += 1
 
@@ -378,8 +386,10 @@ def generate_line_output(title, path, patients, events):
 
     w_sheet['V1'] =  "Inpatient CLASBI Rate (x1000)"
     w_sheet['W1'] =  "Outpatient CLASBI Rate (x1000)"
-    w_sheet['X1'] =  "Inpatient CLANC Rate (x1000)"
-    w_sheet['Y1'] =  "Outpatient CLANC Rate (x1000)"
+    w_sheet['X1'] =  "Total CLASBI Rate (x1000)"
+    w_sheet['Y1'] =  "Inpatient CLANC Rate (x1000)"
+    w_sheet['Z1'] =  "Outpatient CLANC Rate (x1000)"
+    w_sheet['AA1'] =  "Total CLANC Rate (x1000)"
 
     row = 2
     for p_id in patients:
@@ -431,13 +441,17 @@ def generate_line_output(title, path, patients, events):
             w_sheet['T' + str(row)] = total_events
             w_sheet['U' + str(row)] = ((total_events / l.total_time.days) * 1000) if l.total_time.days else 0
             
+
+            w_sheet['X' + str(row)] = (((num_inpatient + num_outpatient) / l.total_time.days) * 1000) if l.total_time.days else 0
+            w_sheet['AA' + str(row)] = (((num_in_clancs + num_out_clancs) / l.total_time.days) * 1000) if l.total_time.days else 0
+            
             #clasbi in/out rate
             w_sheet['V' + str(row)] = ((num_inpatient / l.inpatient_line_time.days) * 1000) if l.inpatient_line_time.days else 0
             w_sheet['W' + str(row)] = ((num_outpatient / (l.total_time.days - l.inpatient_line_time.days)) * 1000) if (l.total_time.days - l.inpatient_line_time.days) else 0
 
             #clanc in/out rate
-            w_sheet['X' + str(row)] = ((num_in_clancs / l.inpatient_line_time.days) * 1000) if l.inpatient_line_time.days else 0
-            w_sheet['Y' + str(row)] = ((num_out_clancs / (l.total_time.days - l.inpatient_line_time.days)) * 1000) if (l.total_time.days - l.inpatient_line_time.days) else 0
+            w_sheet['Y' + str(row)] = ((num_in_clancs / l.inpatient_line_time.days) * 1000) if l.inpatient_line_time.days else 0
+            w_sheet['Z' + str(row)] = ((num_out_clancs / (l.total_time.days - l.inpatient_line_time.days)) * 1000) if (l.total_time.days - l.inpatient_line_time.days) else 0
             w_sheet['D' + str(row)].number_format = 'dd-mmm-yy'
             w_sheet['E' + str(row)].number_format = 'dd-mmm-yy'
 
@@ -467,15 +481,31 @@ def calculate_total_cath_days(p, start_range, end_range):
     date_range = []
     index = 0
     for l in lines_in_range:
+        start = l.in_date if l.in_date >= start_range else start_range
+        end = l.out_date if l.out_date <= end_range else end_range
         if not date_range:
-            date_range += [[l.in_date, l.out_date]]
-        elif l.in_date > date_range[index][1]:
+            date_range += [[start, end]]
+        elif start > date_range[index][1]:
             index += 1
-            date_range += [[l.in_date, l.out_date]]
-        elif l.out_date > date_range[index][1]:
-            date_range[index][1] = l.out_date
-    return sum([(r[1]-r[0]).days for r in date_range])
+            date_range += [[start, end]]
+        elif end > date_range[index][1]:
+            date_range[index][1] = end
+    inpatient_cath_days = timedelta(0)
+    for v in p.visits:
+        for l in lines_in_range:
+            if l.out_date < v.check_in_date or l.in_date > v.check_out_date:
+                continue
+            elif v.check_in_date > l.in_date and v.check_out_date < l.out_date:
+                inpatient_cath_days += v.check_out_date - v.check_in_date
+            elif v.check_in_date <= l.in_date and v.check_out_date >= l.out_date:
+                inpatient_cath_days += l.out_date - l.in_date
+            elif v.check_in_date <= l.in_date and v.check_out_date < l.out_date:
+                inpatient_cath_days += v.check_out_date - l.in_date
+            elif v.check_in_date > l.in_date and v.check_out_date <= l.out_date:
+                inpatient_cath_days += l.out_date - v.check_in_date
+    total_cath_days = sum([(r[1]-r[0]).days for r in date_range])
 
+    return [total_cath_days, inpatient_cath_days.days, total_cath_days - inpatient_cath_days.days]
 
 def calculate_inpatient_line_days(p):
     for v in p.visits:
