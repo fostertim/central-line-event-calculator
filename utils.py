@@ -261,12 +261,16 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
     w_sheet['O1'] = 'CLABSIs'
     w_sheet['P1'] = 'Inpatient CLABSIs'
     w_sheet['Q1'] = 'Outpatient CLABSIs'
-    w_sheet['R1'] = "CLABSI Rate (x1000)"
-    w_sheet['S1'] = 'CLANCs'
-    w_sheet['T1'] = 'Inpatient CLANCs'
-    w_sheet['U1'] = 'Outpatient CLANCs'
-    w_sheet['V1'] = "CLANC Rate (x1000)"
-    w_sheet['W1'] = "ALL EVENT Rate (x1000)"
+    w_sheet['R1'] = 'Inpatient CLABSI Rate (x1000)'
+    w_sheet['S1'] = 'Outpatient CLABSI Rate (x1000)'
+    w_sheet['T1'] = "CLABSI Rate (x1000)"
+    w_sheet['U1'] = 'CLANCs'
+    w_sheet['V1'] = 'Inpatient CLANCs'
+    w_sheet['W1'] = 'Outpatient CLANCs'
+    w_sheet['X1'] = "Inpatient CLANC Rate (x1000)"
+    w_sheet['Y1'] = "Outpatient CLANC Rate (x1000)"
+    w_sheet['Z1'] = "CLANC Rate (x1000)"
+    w_sheet['AA1'] = "ALL EVENT Rate (x1000)"
 
     pop_inp = 0
     pop_out = 0
@@ -314,14 +318,18 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
         w_sheet['O' + str(row)] = len(p.clabsis)
         w_sheet['P' + str(row)] = in_clabsi
         w_sheet['Q' + str(row)] = out_clabsi
-        w_sheet['R' + str(row)] = (w_sheet['O' + str(row)].value / w_sheet['G' + str(row)].value * 1000) if w_sheet['G' + str(row)].value != 0 else 0
-        w_sheet['S' + str(row)] = len(p.clancs)
-        w_sheet['T' + str(row)] = in_clanc
-        w_sheet['U' + str(row)] = out_clanc
-        w_sheet['V' + str(row)] = (w_sheet['S' + str(row)].value / w_sheet['G' + str(row)].value * 1000) if w_sheet['G' + str(row)].value != 0 else 0
-        w_sheet['W' + str(row)] = ((w_sheet['R' + str(row)].value + w_sheet['R' + str(row)].value) / w_sheet['G' + str(row)].value * 1000) if w_sheet['G' + str(row)].value != 0 else 0
+        w_sheet['R' + str(row)] = ((in_clabsi / inp_cath_days) * 1000) if inp_cath_days else 0
+        w_sheet['S' + str(row)] = ((out_clabsi / outp_cath_days) * 1000) if outp_cath_days else 0
+        w_sheet['T' + str(row)] = (w_sheet['O' + str(row)].value / w_sheet['G' + str(row)].value * 1000) if w_sheet['G' + str(row)].value != 0 else 0
+        w_sheet['U' + str(row)] = len(p.clancs)
+        w_sheet['V' + str(row)] = in_clanc
+        w_sheet['W' + str(row)] = out_clanc
+        w_sheet['X' + str(row)] = ((in_clanc / inp_cath_days) * 1000) if inp_cath_days else 0
+        w_sheet['Y' + str(row)] = ((out_clanc / outp_cath_days) * 1000) if outp_cath_days else 0
+        w_sheet['Z' + str(row)] = (w_sheet['U' + str(row)].value / w_sheet['G' + str(row)].value * 1000) if w_sheet['G' + str(row)].value != 0 else 0
+        w_sheet['AA' + str(row)] = ((in_clanc + out_clanc + in_clabsi + out_clabsi) / w_sheet['G' + str(row)].value * 1000) if w_sheet['G' + str(row)].value != 0 else 0
         
-        row += 1
+        row += 1    
 
     #Summation Data
     max_index = str(row)
@@ -343,12 +351,16 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
     w_sheet['O' + max_index] = '=SUM(O2:O' +  str(bottom) + ')'
     w_sheet['P' + max_index] = '=SUM(P2:P' +  str(bottom) + ')'
     w_sheet['Q' + max_index] = '=SUM(Q2:Q' +  str(bottom) + ')'
-    w_sheet['R' + max_index] = '=O'+ max_index + '/G' + max_index + "* 1000"
-    w_sheet['S' + max_index] = '=SUM(S2:S' +  str(bottom) + ')'
-    w_sheet['T' + max_index] = '=SUM(T2:T' +  str(bottom) + ')'
+    w_sheet['R' + max_index] = '=P'+ max_index + '/' + str(pop_inp) + "* 1000"
+    w_sheet['S' + max_index] = '=Q'+ max_index + '/' + str(pop_out) + "* 1000"
+    w_sheet['T' + max_index] = '=O'+ max_index + '/G' + max_index + "* 1000"
     w_sheet['U' + max_index] = '=SUM(U2:U' +  str(bottom) + ')'
-    w_sheet['V' + max_index] = '=S'+ max_index + '/G' + max_index + "* 1000"
-    w_sheet['W' + max_index] = '=(V'+ max_index + '+ S' + max_index + ')/G' + max_index + "* 1000"
+    w_sheet['V' + max_index] = '=SUM(V2:V' +  str(bottom) + ')'
+    w_sheet['W' + max_index] = '=SUM(W2:W' +  str(bottom) + ')'
+    w_sheet['X' + max_index] = '=V'+ max_index + '/' + str(pop_inp) + "* 1000"
+    w_sheet['Y' + max_index] = '=W'+ max_index + '/' + str(pop_out) + "* 1000"
+    w_sheet['Z' + max_index] = '=U'+ max_index + '/G' + max_index + "* 1000"
+    w_sheet['AA' + max_index] = '=(O'+ max_index + '+ S' + max_index + ')/G' + max_index + "* 1000"
 
     #adjust cell width for titles
     index = 1
