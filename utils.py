@@ -5,7 +5,7 @@ from openpyxl import Workbook, load_workbook, cell
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill, colors
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 import functools
 import string
@@ -300,6 +300,7 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
         total_cath_days, inp_cath_days, outp_cath_days = calculate_total_cath_days(p, start_range, end_range) if p.lines else 0
         pop_inp += inp_cath_days
         pop_out += outp_cath_days
+        print(total_cath_days, inp_cath_days, outp_cath_days)
 
         w_sheet['A' + str(row)] = p_id
         w_sheet['B' + str(row)] = len(p.lines)
@@ -360,7 +361,7 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
     w_sheet['X' + max_index] = '=V'+ max_index + '/' + str(pop_inp) + "* 1000"
     w_sheet['Y' + max_index] = '=W'+ max_index + '/' + str(pop_out) + "* 1000"
     w_sheet['Z' + max_index] = '=U'+ max_index + '/G' + max_index + "* 1000"
-    w_sheet['AA' + max_index] = '=(O'+ max_index + '+ S' + max_index + ')/G' + max_index + "* 1000"
+    w_sheet['AA' + max_index] = '=(O'+ max_index + '+ U' + max_index + ')/G' + max_index + "* 1000"
 
     #adjust cell width for titles
     index = 1
@@ -489,7 +490,6 @@ def generate_line_output(title, path, patients, events):
 
 def calculate_total_cath_days(p, start_range, end_range):
     """Returns the total number of days a Patient has ANY catheter."""
-    #need to test on large data sample
     sorted(p.lines)
     lines_in_range = []
     for l in p.lines:
@@ -500,32 +500,30 @@ def calculate_total_cath_days(p, start_range, end_range):
         lines_in_range += [l]
     date_range = []
     index = 0
+    inpatient_cath_days = []
+
     for l in lines_in_range:
         start = l.in_date if l.in_date >= start_range else start_range
         end = l.out_date if l.out_date <= end_range else end_range
-        if not date_range:
-            date_range += [[start, end]]
-        elif start > date_range[index][1]:
-            index += 1
-            date_range += [[start, end]]
-        elif end > date_range[index][1]:
-            date_range[index][1] = end
-    inpatient_cath_days = timedelta(0)
-    for v in p.visits:
-        for l in lines_in_range:
-            if l.out_date < v.check_in_date or l.in_date > v.check_out_date:
+        date_range += [timedelta(days = d) + start.date() for d in range((end-start).days)]
+        for v in p.visits:
+            if end < v.check_in_date or start > v.check_out_date:
                 continue
-            elif v.check_in_date > l.in_date and v.check_out_date < l.out_date:
-                inpatient_cath_days += v.check_out_date - v.check_in_date
-            elif v.check_in_date <= l.in_date and v.check_out_date >= l.out_date:
-                inpatient_cath_days += l.out_date - l.in_date
-            elif v.check_in_date <= l.in_date and v.check_out_date < l.out_date:
-                inpatient_cath_days += v.check_out_date - l.in_date
-            elif v.check_in_date > l.in_date and v.check_out_date <= l.out_date:
-                inpatient_cath_days += l.out_date - v.check_in_date
-    total_cath_days = sum([(r[1]-r[0]).days for r in date_range])
-
-    return [total_cath_days, inpatient_cath_days.days, total_cath_days - inpatient_cath_days.days]
+            elif v.check_in_date > start and v.check_out_date < end:
+                tmp = [timedelta(days = d) + v.check_in_date for d in range((v.check_out_date - v.check_in_date).days)]
+                inpatient_cath_days += [date(d.year, d.month, d.day) for d in tmp]
+            elif v.check_in_date <= start and v.check_out_date >= end:
+                tmp = [timedelta(days = d) + start for d in range((end - start).days)]
+                inpatient_cath_days += [date(d.year, d.month, d.day) for d in tmp]
+            elif v.check_in_date <= start and v.check_out_date < end:
+                tmp = [timedelta(days = d) + start for d in range((v.check_out_date - start).days)]
+                inpatient_cath_days += [date(d.year, d.month, d.day) for d in tmp]
+            elif v.check_in_date > start and v.check_out_date <= end:
+                tmp = [timedelta(days = d) + v.check_in_date for d in range((end - v.check_in_date).days)]
+                inpatient_cath_days += [date(d.year, d.month, d.day) for d in tmp]
+    inp_cath_days = len(set(inpatient_cath_days))
+    total_cath_days = len(set(date_range))
+    return [total_cath_days, inp_cath_days, total_cath_days - inp_cath_days]
 
 def calculate_inpatient_line_days(p):
     for v in p.visits:
