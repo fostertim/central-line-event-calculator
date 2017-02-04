@@ -271,6 +271,8 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
     w_sheet['Y1'] = "Outpatient CLANC Rate (x1000)"
     w_sheet['Z1'] = "CLANC Rate (x1000)"
     w_sheet['AA1'] = "ALL EVENT Rate (x1000)"
+    w_sheet['AB1'] = "Inpatient Catheter Days"
+    w_sheet['AC1'] = "Outpatient Catheter Days"
 
     pop_inp = 0
     pop_out = 0
@@ -329,6 +331,8 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
         w_sheet['Y' + str(row)] = ((out_clanc / outp_cath_days) * 1000) if outp_cath_days else 0
         w_sheet['Z' + str(row)] = (w_sheet['U' + str(row)].value / w_sheet['G' + str(row)].value * 1000) if w_sheet['G' + str(row)].value != 0 else 0
         w_sheet['AA' + str(row)] = ((in_clanc + out_clanc + in_clabsi + out_clabsi) / w_sheet['G' + str(row)].value * 1000) if w_sheet['G' + str(row)].value != 0 else 0
+        w_sheet['AB' + str(row)] = inp_cath_days
+        w_sheet['AC' + str(row)] = outp_cath_days
         
         row += 1    
 
@@ -362,6 +366,8 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
     w_sheet['Y' + max_index] = '=W'+ max_index + '/' + str(pop_out) + "* 1000"
     w_sheet['Z' + max_index] = '=U'+ max_index + '/G' + max_index + "* 1000"
     w_sheet['AA' + max_index] = '=(O'+ max_index + '+ U' + max_index + ')/G' + max_index + "* 1000"
+    w_sheet['AB' + max_index] = '=SUM(AB2:AB' +  str(bottom) + ')'
+    w_sheet['AC' + max_index] = '=SUM(AC2:AC' +  str(bottom) + ')'
 
     #adjust cell width for titles
     index = 1
