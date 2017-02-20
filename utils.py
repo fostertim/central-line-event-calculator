@@ -11,7 +11,7 @@ import functools
 import string
 import os
 
-# define options for opening or saving a file
+#  define options for opening or saving a file
 OPTIONS = {}
 OPTIONS['defaultextension'] = '.xlsx'
 OPTIONS['filetypes'] = [('Excel files', '.xlsx .xls'), ('all files', '.*')]
@@ -98,9 +98,9 @@ def read_line_data(path, start_range, end_range):
             out_date = w_sheet['G' + str(index)].value
         removal_reason = w_sheet['H' + str(index)].value
 
-        # Spreadsheet format check
-        # if not isinstance(p_id, int):
-        #     raise BadFormatException("Patient ID Numbers in Column A of Line Data must be numbers.")
+        #  Spreadsheet format check
+        #  if not isinstance(p_id, int):
+        #      raise BadFormatException("Patient ID Numbers in Column A of Line Data must be numbers.")
         if not isinstance(line_id, int):
             raise BadFormatException("Line ID Numbers in Column B of Line Data must be numbers.")
         if not isinstance(line_type, str):
@@ -114,15 +114,15 @@ def read_line_data(path, start_range, end_range):
         if not isinstance(removal_reason, str) and removal_reason is not None:
             raise BadFormatException("Reason For Removal in Column H of Line Data must be text.")
         
-        #Check Dates
+        # Check Dates
         if (in_date < start_range and out_date < start_range) or (in_date > end_range):
             index += 1
-            continue #Do not add dates outside of range 
-        #commented out because i think it confuses the end result.
-        # elif in_date < start_range and out_date > start_range:
-        #     in_date = start_range
-        # elif in_date < end_range and out_date > end_range:
-        #     out_date = end_range
+            continue # Do not add dates outside of range 
+        # commented out because i think it confuses the end result.
+        #  elif in_date < start_range and out_date > start_range:
+        #      in_date = start_range
+        #  elif in_date < end_range and out_date > end_range:
+        #      out_date = end_range
 
         if not p_id in patients:
             p = Patient(p_id)
@@ -144,7 +144,7 @@ def read_patient_data(path, patients, start_range, end_range):
         in_date = w_sheet['B' + str(index)].value
         out_date = w_sheet['C' + str(index)].value
 
-        # Spreadsheet format check
+        #  Spreadsheet format check
         if not isinstance(p_id, int):
             raise BadFormatException("Patient ID Numbers in Column A of Patient Data must be numbers.")
         if not isinstance(in_date, datetime):
@@ -243,12 +243,13 @@ def check_full_day_admit(in_time, out_time):
         return False
     return True
 
+
 def generate_patient_output(title, path, patients, events, start_range, end_range):
     """Writes patient-only analysis to new Excel file."""
     work_book = Workbook()
     w_sheet = work_book.active
 
-    #Column Titles
+    #  Column Titles
     w_sheet.title = 'Output Individual Patient'
     w_sheet['A1'] = 'Patient ID'
     w_sheet['B1'] = 'Total Lines'
@@ -263,7 +264,7 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
     w_sheet['K1'] = 'Outpatient Lumen Days'
     w_sheet['L1'] = 'Inpatient Lumen Density (Inpatient Lumen Days/Total Inpatient Days With A Catheter)'
     w_sheet['M1'] = 'Outpatient Lumen Density (Outpatient Lumen Days/Total Outpatient Days With A Catheter)'
-    w_sheet['N1'] = 'Total Lumen Density (Sum of all Lumen Days/Total Days with any cather)'
+    w_sheet['N1'] = 'Total Lumen Density (Sum of all Lumen Days/Total Days with any catheter)'
     w_sheet['O1'] = 'CLABSIs'
     w_sheet['P1'] = 'Inpatient CLABSIs'
     w_sheet['Q1'] = 'Outpatient CLABSIs'
@@ -320,7 +321,7 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
         w_sheet['F' + str(row)] = (p.total_line_time.days/len(p.lines)) if p.lines else 0
         w_sheet['G' + str(row)] = total_cath_days
         w_sheet['H' + str(row)] = (w_sheet['C' + str(row)].value / w_sheet['G' + str(row)].value) if w_sheet['G' + str(row)].value != 0 else 0
-        w_sheet['I' + str(row)] = p.total_lumen_time.days #check
+        w_sheet['I' + str(row)] = p.total_lumen_time.days # check
         w_sheet['J' + str(row)] = p.inpatient_lumen_time
         w_sheet['K' + str(row)] = p.total_lumen_time.days - p.inpatient_lumen_time
         w_sheet['L' + str(row)] = (w_sheet['J' + str(row)].value / inp_cath_days) if inp_cath_days else 0 
@@ -342,11 +343,11 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
         w_sheet['AB' + str(row)] = inp_cath_days
         w_sheet['AC' + str(row)] = outp_cath_days
         w_sheet['AD' + str(row)] = p.inpatient_line_time / inp_cath_days if inp_cath_days else 0
-        w_sheet['AE' + str(row)] = (p.total_line_time.days - p.inpatient_line_time) / (outp_cath_days) if outp_cath_days else 0
+        w_sheet['AE' + str(row)] = (p.total_line_time.days - p.inpatient_line_time) / outp_cath_days if outp_cath_days else 0
         
         row += 1    
 
-    #Summation Data
+    # Summation Data
     max_index = str(row)
     bottom = row - 1
     w_sheet['A' + max_index] = 'Population Total'
@@ -366,9 +367,9 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
     w_sheet['O' + max_index] = '=SUM(O2:O' +  str(bottom) + ')'
     w_sheet['P' + max_index] = '=SUM(P2:P' +  str(bottom) + ')'
     w_sheet['Q' + max_index] = '=SUM(Q2:Q' +  str(bottom) + ')'
-    w_sheet['R' + max_index] = '=P'+ max_index + '/' + str(pop_inp) + "* 1000"
-    w_sheet['S' + max_index] = '=Q'+ max_index + '/' + str(pop_out) + "* 1000"
-    w_sheet['T' + max_index] = '=O'+ max_index + '/G' + max_index + "* 1000"
+    w_sheet['R' + max_index] = '=P' + max_index + '/' + str(pop_inp) + "* 1000"
+    w_sheet['S' + max_index] = '=Q' + max_index + '/' + str(pop_out) + "* 1000"
+    w_sheet['T' + max_index] = '=O' + max_index + '/G' + max_index + "* 1000"
     w_sheet['U' + max_index] = '=SUM(U2:U' +  str(bottom) + ')'
     w_sheet['V' + max_index] = '=SUM(V2:V' +  str(bottom) + ')'
     w_sheet['W' + max_index] = '=SUM(W2:W' +  str(bottom) + ')'
@@ -381,7 +382,7 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
     w_sheet['AD' + max_index] = '=(D'+ max_index + ')/AB' + max_index + '* 1000'
     w_sheet['AE' + max_index] = '=(E'+ max_index + ')/AC' + max_index + '* 1000'
 
-    #adjust cell width for titles
+    # adjust cell width for titles
     index = 1
     for col in w_sheet.columns:
         w_sheet.column_dimensions[get_column_letter(index)].width = len(col[0].value)
@@ -397,7 +398,7 @@ def generate_line_output(title, path, patients, events):
     work_book = Workbook()
     w_sheet = work_book.active
 
-     #Column Titles
+     # Column Titles
     w_sheet.title = 'Output Individual Line'
     w_sheet['A1'] = 'Line ID'
     w_sheet['B1'] = 'Patient ID'
@@ -484,11 +485,11 @@ def generate_line_output(title, path, patients, events):
             w_sheet['X' + str(row)] = (((num_inpatient + num_outpatient) / l.total_time.days) * 1000) if l.total_time.days else 0
             w_sheet['AA' + str(row)] = (((num_in_clancs + num_out_clancs) / l.total_time.days) * 1000) if l.total_time.days else 0
             
-            #clasbi in/out rate
+            # clasbi in/out rate
             w_sheet['V' + str(row)] = ((num_inpatient / l.inpatient_line_time) * 1000) if l.inpatient_line_time else 0
             w_sheet['W' + str(row)] = ((num_outpatient / (l.total_time.days - l.inpatient_line_time)) * 1000) if (l.total_time.days - l.inpatient_line_time) else 0
 
-            #clanc in/out rate
+            # clanc in/out rate
             w_sheet['Y' + str(row)] = ((num_in_clancs / l.inpatient_line_time) * 1000) if l.inpatient_line_time else 0
             w_sheet['Z' + str(row)] = ((num_out_clancs / (l.total_time.days - l.inpatient_line_time)) * 1000) if (l.total_time.days - l.inpatient_line_time) else 0
             w_sheet['D' + str(row)].number_format = 'dd-mmm-yy'
@@ -496,7 +497,7 @@ def generate_line_output(title, path, patients, events):
 
             row += 1
 
-    #adjust cell width for titles
+    # adjust cell width for titles
     index = 1
     for col in w_sheet.columns:
         w_sheet.column_dimensions[get_column_letter(index)].width = max(10, len(col[0].value))
@@ -568,9 +569,9 @@ class Patient():
     def __init__(self, patient_id):
         self.visits = []
         self.lines = []
-        #self.events = {} # possibly becoming depricated. Review for later. Comment meant to trigger pylint.
+        # self.events = {} #  possibly becoming depricated. Review for later. Comment meant to trigger pylint.
 
-        #list of clabsis and possible clanc events
+        # list of clabsis and possible clanc events
         self.clabsis = []
         self.clancs = []
 
@@ -629,7 +630,7 @@ class Line():
         self.inpatient_lumen_time = 0
 
 
-        #list of clabsis and variable for possible clanc event
+        # list of clabsis and variable for possible clanc event
         self.clabsis = []
         self.clanc = None
 
