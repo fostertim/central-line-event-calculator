@@ -74,18 +74,19 @@ def verify_excel_file(path):
 def process_data(title, admit_path, line_path, clabsi_path, clanc_path, out_path, start_range, end_range):
     """Read in each file and writes results to the out_path."""
     events = {}
-    print("processing...")
+    print("processing...0/6")
     patients = read_line_data(line_path, start_range, end_range)
-    print("processing...")
+    print("processing...1/6")
     read_patient_data(admit_path, patients, start_range, end_range)
-    print("processing...")
+    print("processing...2/6")
     read_clabsi_data(clabsi_path, patients, start_range, end_range)
-    print("processing...")
+    print("processing...3/6")
     read_clanc_data(clanc_path, patients, start_range, end_range)
-    print("processing...")
+    print("processing...4/6")
     generate_patient_output(title, out_path, patients, events, start_range, end_range)
-    print("processing...")
+    print("processing...5/6")
     generate_line_output(title, out_path, patients, events)
+    print("complete...6/6")
     return True
 
 
@@ -320,7 +321,6 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
                                                                                    end_range) if p.lines else 0
         pop_inp += inp_cath_days
         pop_out += outp_cath_days
-        print(total_cath_days, inp_cath_days, outp_cath_days)
 
         w_sheet['A' + str(row)] = p_id
         w_sheet['B' + str(row)] = len(p.lines)
@@ -546,7 +546,7 @@ def calculate_total_cath_days(p, start_range, end_range):
     for l in lines_in_range:
         start = l.in_date if l.in_date >= start_range else start_range
         end = l.out_date if l.out_date <= end_range else end_range
-        date_range += [timedelta(days=d) + start.date() for d in range((end - start).days + 1)]
+        date_range += [timedelta(days=d) + start.date() for d in range((end - start).days)]
         for v in p.visits:
             if end < v.check_in_date or start > v.check_out_date:
                 continue
