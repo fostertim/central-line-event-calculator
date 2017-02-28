@@ -185,6 +185,7 @@ def read_clabsi_data(path, patients, start_range, end_range):
             raise BadFormatException("CLABSI Date in Column B of CLABSI Data must be a date.")
 
         if clabsi_date < start_range or clabsi_date > end_range:
+            index += 1
             continue
 
         if p_id in patients:
@@ -223,6 +224,7 @@ def read_clanc_data(path, patients, start_range, end_range):
             raise BadFormatException("CLABSI Date in Column C of CLANC Data must be a date.")
 
         if clanc_date < start_range or clanc_date > end_range:
+            index += 1
             continue
 
         if p_id in patients:
@@ -576,13 +578,13 @@ def calculate_inpatient_line_days(p, start_range, end_range):
             end = l.out_date if l.out_date <= end_range else end_range
             tmp = []
             if v.check_in_date > l.in_date and v.check_out_date < l.out_date:
-                tmp = [timedelta(days=d) + v.check_in_date for d in range((v.check_out_date - v.check_in_date).days + 1)]
+                tmp = [timedelta(days=d) + v.check_in_date for d in range((v.check_out_date - v.check_in_date).days)]
             elif v.check_in_date <= l.in_date and v.check_out_date >= l.out_date:
-                tmp = [timedelta(days=d) + start for d in range((end - start).days + 1)]
+                tmp = [timedelta(days=d) + start for d in range((end - start).days)]
             elif v.check_in_date <= l.in_date and v.check_out_date < l.out_date:
-                tmp = [timedelta(days=d) + start for d in range((v.check_out_date - start).days + 1)]
+                tmp = [timedelta(days=d) + start for d in range((v.check_out_date - start).days)]
             elif v.check_in_date > l.in_date and v.check_out_date <= l.out_date:
-                tmp = [timedelta(days=d) + v.check_in_date for d in range((end - v.check_in_date).days + 1)]
+                tmp = [timedelta(days=d) + v.check_in_date for d in range((end - v.check_in_date).days)]
             p.inpatient_line_time += len([date(d.year, d.month, d.day) for d in tmp])
             l.inpatient_line_time += len([date(d.year, d.month, d.day) for d in tmp])
             l.inpatient_lumen_time = l.lumens * l.inpatient_line_time
