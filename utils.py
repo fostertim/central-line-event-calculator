@@ -197,7 +197,7 @@ def read_clabsi_data(path, patients, start_range, end_range):
 
             event = CLABSI(p, lines, clabsi_date)
             for visit in p.visits:
-                if clabsi_date > visit.check_in_date and clabsi_date <= visit.check_out_date + timedelta(days=1):
+                if clabsi_date >= visit.check_in_date and clabsi_date <= visit.check_out_date + timedelta(days=1):
                     event.inpatient = True
                 else:
                     event.inpatient = False
@@ -553,16 +553,16 @@ def calculate_total_cath_days(p, start_range, end_range):
             if end < v.check_in_date or start > v.check_out_date:
                 continue
             elif v.check_in_date > start and v.check_out_date < end:
-                tmp = [timedelta(days=d) + v.check_in_date for d in range((v.check_out_date - v.check_in_date).days + 1)]
+                tmp = [timedelta(days=d) + v.check_in_date for d in range((v.check_out_date - v.check_in_date).days)]
                 inpatient_cath_days += [date(d.year, d.month, d.day) for d in tmp]
             elif v.check_in_date <= start and v.check_out_date >= end:
-                tmp = [timedelta(days=d) + start for d in range((end - start).days + 1)]
+                tmp = [timedelta(days=d) + start for d in range((end - start).days  )]
                 inpatient_cath_days += [date(d.year, d.month, d.day) for d in tmp]
             elif v.check_in_date <= start and v.check_out_date < end:
-                tmp = [timedelta(days=d) + start for d in range((v.check_out_date - start).days + 1)]
+                tmp = [timedelta(days=d) + start for d in range((v.check_out_date - start).days)]
                 inpatient_cath_days += [date(d.year, d.month, d.day) for d in tmp]
             elif v.check_in_date > start and v.check_out_date <= end:
-                tmp = [timedelta(days=d) + v.check_in_date for d in range((end - v.check_in_date).days + 1)]
+                tmp = [timedelta(days=d) + v.check_in_date for d in range((end - v.check_in_date).days)]
                 inpatient_cath_days += [date(d.year, d.month, d.day) for d in tmp]
     inp_cath_days = len(set(inpatient_cath_days))
     total_cath_days = len(set(date_range))
