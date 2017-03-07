@@ -198,8 +198,7 @@ def read_clabsi_data(path, patients, start_range, end_range):
             event = CLABSI(p, lines, clabsi_date)
 
             for visit in p.visits:
-                if visit.check_in_date <= clabsi_date <= visit.check_out_date:
-                # if visit.check_in_date + timedelta(days=2) <= clabsi_date <= visit.check_out_date + timedelta(days=1):
+                if visit.check_in_date + timedelta(days=2) <= clabsi_date <= visit.check_out_date + timedelta(days=1):
                     event.inpatient = True
                     break
             else:
@@ -240,7 +239,8 @@ def read_clanc_data(path, patients, start_range, end_range):
                 continue
             event = CLANC(p, line, clanc_date)
             for visit in p.visits:
-                if visit.check_in_date + timedelta(days=2) <= clanc_date <= visit.check_out_date + timedelta(days=1):
+                if visit.check_in_date <= clanc_date <= visit.check_out_date:
+                # if visit.check_in_date + timedelta(days=2) <= clanc_date <= visit.check_out_date + timedelta(days=1):
                     event.inpatient = True
                     break
             else:
