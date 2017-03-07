@@ -196,11 +196,14 @@ def read_clabsi_data(path, patients, start_range, end_range):
                     lines.append(l)
 
             event = CLABSI(p, lines, clabsi_date)
+
             for visit in p.visits:
-                if clabsi_date >= visit.check_in_date and clabsi_date <= visit.check_out_date + timedelta(days=1):
+                if visit.check_in_date <= clabsi_date <= visit.check_out_date:
+                # if visit.check_in_date + timedelta(days=2) <= clabsi_date <= visit.check_out_date + timedelta(days=1):
                     event.inpatient = True
-                else:
-                    event.inpatient = False
+                    break
+            else:
+                event.inpatient = False
 
             p.clabsis.append(event)
 
@@ -237,10 +240,11 @@ def read_clanc_data(path, patients, start_range, end_range):
                 continue
             event = CLANC(p, line, clanc_date)
             for visit in p.visits:
-                if clanc_date >= visit.check_in_date and clanc_date <= visit.check_out_date:
+                if visit.check_in_date + timedelta(days=2) <= clanc_date <= visit.check_out_date + timedelta(days=1):
                     event.inpatient = True
-                else:
-                    event.inpatient = False
+                    break
+            else:
+                event.inpatient = False
 
             p.clancs.append(event)
             line.clanc = event
@@ -399,8 +403,8 @@ def generate_patient_output(title, path, patients, events, start_range, end_rang
     w_sheet['AA' + max_index] = '=(O' + max_index + '+ U' + max_index + ')/G' + max_index + "* 1000"
     w_sheet['AB' + max_index] = '=SUM(AB2:AB' + str(bottom) + ')'
     w_sheet['AC' + max_index] = '=SUM(AC2:AC' + str(bottom) + ')'
-    w_sheet['AD' + max_index] = '=(D' + max_index + ')/AB' + max_index + '* 1000'
-    w_sheet['AE' + max_index] = '=(E' + max_index + ')/AC' + max_index + '* 1000'
+    w_sheet['AD' + max_index] = '=(D' + max_index + ')/AB' + max_index
+    w_sheet['AE' + max_index] = '=(E' + max_index + ')/AC' + max_index
 
     # adjust cell width for titles
     index = 1
