@@ -73,6 +73,9 @@ def verify_excel_file(path):
 
 def process_data(title, admit_path, line_path, clabsi_path, clanc_path, out_path, start_range, end_range):
     """Read in each file and writes results to the out_path."""
+
+    end_range += timedelta(days=1) #makes end_range inclusive.
+
     events = {}
     print("processing...0/6")
     patients = read_line_data(line_path, start_range, end_range)
@@ -239,8 +242,7 @@ def read_clanc_data(path, patients, start_range, end_range):
                 continue
             event = CLANC(p, line, clanc_date)
             for visit in p.visits:
-                if visit.check_in_date <= clanc_date <= visit.check_out_date:
-                # if visit.check_in_date + timedelta(days=2) <= clanc_date <= visit.check_out_date + timedelta(days=1):
+                if visit.check_in_date < clanc_date <= visit.check_out_date:
                     event.inpatient = True
                     break
             else:
