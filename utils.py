@@ -74,8 +74,10 @@ def verify_excel_file(path):
 def process_data(title, admit_path, line_path, clabsi_path, clanc_path, out_path, start_range, end_range):
     """Read in each file and writes results to the out_path."""
 
-    if end_range != datetime.max: #makes end_range inclusive.
+    try:
         end_range += timedelta(days=1)
+    except Exception:
+        pass
 
     events = {}
     print("processing...0/6")
