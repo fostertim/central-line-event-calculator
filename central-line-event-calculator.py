@@ -92,14 +92,15 @@ def display_options():
         end_day = ("00" + end_day_entry.get())[-2:]
         end_yr = ("0000" + end_yr_entry.get())[-4:]
         try:
-            start = start_mo + start_day + start_yr
-            tmp_start = datetime.strptime(start, '%m%d%Y')
+            start = start_mo + start_day + start_yr + " 00:00:00"
+            tmp_start = datetime.strptime(start, '%m%d%Y %H:%M:%S')
+            print(tmp_start)
         except ValueError as e:
             print(e)
         try:
             global end_range
-            end = end_mo + end_day + end_yr
-            tmp_end = datetime.strptime(end, '%m%d%Y')
+            end = end_mo + end_day + end_yr + " 23:59:59"
+            tmp_end = datetime.strptime(end, '%m%d%Y %H:%M:%S')
         except ValueError as e:
             print(e)
         

@@ -557,21 +557,25 @@ def calculate_total_cath_days(p, start_range, end_range):
     for l in lines_in_range:
         start = l.in_date if l.in_date >= start_range else start_range
         end = l.out_date if l.out_date <= end_range else end_range
+
         date_range += [timedelta(days=d) + start.date() for d in range((end - start).days)]
         for v in p.visits:
+            v_start = v.check_in_date if v.check_in_date >= start_range else start_range
+            v_end = v.check_out_date if v.check_out_date <= end_range else end_range
+
             if end < v.check_in_date or start > v.check_out_date:
                 continue
-            elif v.check_in_date > start and v.check_out_date < end:
-                tmp = [timedelta(days=d) + v.check_in_date for d in range((v.check_out_date - v.check_in_date).days)]
+            elif v.check_in_date > start and v.check_out_date < l.out_date:
+                tmp = [timedelta(days=d) + v.check_in_date for d in range((v_end - v_start).days)]
                 inpatient_cath_days += [date(d.year, d.month, d.day) for d in tmp]
-            elif v.check_in_date <= start and v.check_out_date >= end:
-                tmp = [timedelta(days=d) + start for d in range((end - start).days  )]
+            elif v.check_in_date <= start and v.check_out_date >= l.out_date:
+                tmp = [timedelta(days=d) + start for d in range((end - start).days)]
                 inpatient_cath_days += [date(d.year, d.month, d.day) for d in tmp]
-            elif v.check_in_date <= start and v.check_out_date < end:
-                tmp = [timedelta(days=d) + start for d in range((v.check_out_date - start).days)]
+            elif v.check_in_date <= start and v.check_out_date < l.out_date:
+                tmp = [timedelta(days=d) + start for d in range((v_end - start).days)]
                 inpatient_cath_days += [date(d.year, d.month, d.day) for d in tmp]
-            elif v.check_in_date > start and v.check_out_date <= end:
-                tmp = [timedelta(days=d) + v.check_in_date for d in range((end - v.check_in_date).days)]
+            elif v.check_in_date > start and v.check_out_date >= l.out_date:
+                tmp = [timedelta(days=d) + v.check_in_date for d in range((end - v_start).days)]
                 inpatient_cath_days += [date(d.year, d.month, d.day) for d in tmp]
     inp_cath_days = len(set(inpatient_cath_days))
     total_cath_days = len(set(date_range))
@@ -585,19 +589,21 @@ def calculate_inpatient_line_days(p, start_range, end_range):
                 continue
             start = l.in_date if l.in_date >= start_range else start_range
             end = l.out_date if l.out_date <= end_range else end_range
+            v_start = v.check_in_date if v.check_in_date >= start_range else start_range
+            v_end = v.check_out_date if v.check_out_date <= end_range else end_range
+            
             tmp = []
             if v.check_in_date > l.in_date and v.check_out_date < l.out_date:
-                tmp = [timedelta(days=d) + v.check_in_date for d in range((v.check_out_date - v.check_in_date).days)]
+                tmp = [timedelta(days=d) + v.check_in_date for d in range((v_end  - v_start).days)]
             elif v.check_in_date <= l.in_date and v.check_out_date >= l.out_date:
                 tmp = [timedelta(days=d) + start for d in range((end - start).days)]
             elif v.check_in_date <= l.in_date and v.check_out_date < l.out_date:
-                tmp = [timedelta(days=d) + start for d in range((v.check_out_date - start).days)]
-            elif v.check_in_date > l.in_date and v.check_out_date <= l.out_date:
-                tmp = [timedelta(days=d) + v.check_in_date for d in range((end - v.check_in_date).days)]
+                tmp = [timedelta(days=d) + start for d in range((v_end  - start).days)]
+            elif v.check_in_date > l.in_date and v.check_out_date >= l.out_date:
+                tmp = [timedelta(days=d) + v.check_in_date for d in range((end - v_start).days)]
             p.inpatient_line_time += len([date(d.year, d.month, d.day) for d in tmp])
             l.inpatient_line_time += len([date(d.year, d.month, d.day) for d in tmp])
             l.inpatient_lumen_time = l.lumens * l.inpatient_line_time
-
 
 class Patient:
     """Patient Class contains lists of Visits, Lines and a Dictionary of Events."""
