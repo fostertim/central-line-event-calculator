@@ -497,7 +497,7 @@ def generate_line_output(title, path, patients, events):
                     num_in_clancs = 1
                 else:
                     num_out_clancs = 1
-                diff = l.out_date - l.clanc.date
+                diff = datetime.date(l.out_date) - datetime.date(l.clanc.date)
                 w_sheet['R' + str(row)] = diff.days
             else:
                 w_sheet['R' + str(row)] = "No CLANC Reported"
@@ -587,11 +587,11 @@ def calculate_inpatient_line_days(p, start_range, end_range):
         for l in p.lines:
             if l.out_date < v.check_in_date or l.in_date > v.check_out_date:
                 continue
-            start = l.in_date if l.in_date >= start_range else start_range
-            end = l.out_date if l.out_date <= end_range else end_range
-            v_start = v.check_in_date if v.check_in_date >= start_range else start_range
-            v_end = v.check_out_date if v.check_out_date <= end_range else end_range
-            
+            start = datetime.date(l.in_date) if l.in_date >= start_range else datetime.date(start_range)
+            end = datetime.date(l.out_date) if l.out_date <= end_range else datetime.date(end_range)
+            v_start = datetime.date(v.check_in_date) if v.check_in_date >= start_range else datetime.date(start_range)
+            v_end = datetime.date(v.check_out_date) if v.check_out_date <= end_range else datetime.date(end_range)
+
             tmp = []
             if v.check_in_date > l.in_date and v.check_out_date < l.out_date:
                 tmp = [timedelta(days=d) + v.check_in_date for d in range((v_end  - v_start).days)]
@@ -599,7 +599,7 @@ def calculate_inpatient_line_days(p, start_range, end_range):
                 tmp = [timedelta(days=d) + start for d in range((end - start).days)]
             elif v.check_in_date <= l.in_date and v.check_out_date < l.out_date:
                 tmp = [timedelta(days=d) + start for d in range((v_end  - start).days)]
-            elif v.check_in_date > l.in_date and v.check_out_date >= l.out_date:
+            elif v.check_in_date.day > l.in_date and v.check_out_date >= l.out_date:
                 tmp = [timedelta(days=d) + v.check_in_date for d in range((end - v_start).days)]
             p.inpatient_line_time += len([date(d.year, d.month, d.day) for d in tmp])
             l.inpatient_line_time += len([date(d.year, d.month, d.day) for d in tmp])
