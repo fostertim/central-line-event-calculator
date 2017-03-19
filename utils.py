@@ -599,7 +599,7 @@ def calculate_inpatient_line_days(p, start_range, end_range):
                 tmp = [timedelta(days=d) + start for d in range((end - start).days)]
             elif v.check_in_date <= l.in_date and v.check_out_date < l.out_date:
                 tmp = [timedelta(days=d) + start for d in range((v_end  - start).days)]
-            elif v.check_in_date.day > l.in_date and v.check_out_date >= l.out_date:
+            elif v.check_in_date > l.in_date and v.check_out_date >= l.out_date:
                 tmp = [timedelta(days=d) + v.check_in_date for d in range((end - v_start).days)]
             p.inpatient_line_time += len([date(d.year, d.month, d.day) for d in tmp])
             l.inpatient_line_time += len([date(d.year, d.month, d.day) for d in tmp])
