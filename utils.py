@@ -73,11 +73,10 @@ def verify_excel_file(path):
 
 def process_data(title, admit_path, line_path, clabsi_path, clanc_path, out_path, start_range, end_range):
     """Read in each file and writes results to the out_path."""
-
-    try:
-        end_range += timedelta(days=1)
-    except Exception:
-        pass
+    # try:
+    #     end_range += timedelta(days=1)
+    # except Exception:
+    #     pass
 
     events = {}
     print("processing...0/6")
@@ -556,7 +555,7 @@ def calculate_total_cath_days(p, start_range, end_range):
 
     for l in lines_in_range:
         start = l.in_date if l.in_date >= start_range else start_range
-        end = l.out_date if l.out_date <= end_range else end_range
+        end = l.out_date if l.out_date <= end_range else end_range + timedelta(seconds=1)
 
         date_range += [timedelta(days=d) + start.date() for d in range((end - start).days)]
         for v in p.visits:
@@ -588,9 +587,9 @@ def calculate_inpatient_line_days(p, start_range, end_range):
             if l.out_date < v.check_in_date or l.in_date > v.check_out_date:
                 continue
             start = datetime.date(l.in_date) if l.in_date >= start_range else datetime.date(start_range)
-            end = datetime.date(l.out_date) if l.out_date <= end_range else datetime.date(end_range)
+            end = datetime.date(l.out_date) if l.out_date <= end_range else datetime.date(end_range + timedelta(seconds=1))
             v_start = datetime.date(v.check_in_date) if v.check_in_date >= start_range else datetime.date(start_range)
-            v_end = datetime.date(v.check_out_date) if v.check_out_date <= end_range else datetime.date(end_range)
+            v_end = datetime.date(v.check_out_date) if v.check_out_date <= end_range else datetime.date(end_range + timedelta(seconds=1))
 
             tmp = []
             if v.check_in_date > l.in_date and v.check_out_date < l.out_date:
@@ -666,10 +665,10 @@ class Line:
         self.line_id = line_id
         self.lumens = lumens
         if start_range > in_date:
-            in_date = start_range
+            self.in_date = start_range
         if end_range < out_date:
-            out_date = end_range
-        self.total_time = out_date - in_date
+            self.out_date = end_range + timedelta(seconds=1)
+        self.total_time = datetime.date(self.out_date) - datetime.date(self.in_date)
         self.lumen_days = self.total_time * self.lumens
         self.removal_reason = removal_reason
         self.inpatient_line_time = 0

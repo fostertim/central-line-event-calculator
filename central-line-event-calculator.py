@@ -94,7 +94,6 @@ def display_options():
         try:
             start = start_mo + start_day + start_yr + " 00:00:00"
             tmp_start = datetime.strptime(start, '%m%d%Y %H:%M:%S')
-            print(tmp_start)
         except ValueError as e:
             print(e)
         try:
