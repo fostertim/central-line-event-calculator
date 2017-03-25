@@ -555,12 +555,14 @@ def calculate_total_cath_days(p, start_range, end_range):
 
     for l in lines_in_range:
         start = l.in_date if l.in_date >= start_range else start_range
-        end = l.out_date if l.out_date <= end_range else end_range + timedelta(seconds=1)
+        end = l.out_date if l.out_date < end_range else end_range + timedelta(seconds=1)
 
         date_range += [timedelta(days=d) + start.date() for d in range((end - start).days)]
         for v in p.visits:
             v_start = v.check_in_date if v.check_in_date >= start_range else start_range
-            v_end = v.check_out_date if v.check_out_date <= end_range else end_range
+            v_end = v.check_out_date if v.check_out_date <= end_range else end_range + timedelta(seconds=1)
+
+            v_start = datetime(year=v_start.year, month=v_start.month, day=v_start.day)
 
             if end < v.check_in_date or start > v.check_out_date:
                 continue
@@ -575,6 +577,7 @@ def calculate_total_cath_days(p, start_range, end_range):
                 inpatient_cath_days += [date(d.year, d.month, d.day) for d in tmp]
             elif v.check_in_date > start and v.check_out_date >= l.out_date:
                 tmp = [timedelta(days=d) + v.check_in_date for d in range((end - v_start).days)]
+
                 inpatient_cath_days += [date(d.year, d.month, d.day) for d in tmp]
     inp_cath_days = len(set(inpatient_cath_days))
     total_cath_days = len(set(date_range))
